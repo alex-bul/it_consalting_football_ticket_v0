@@ -224,18 +224,12 @@ function displaySeatMap(sector) {
                 seatDiv.classList.add('occupied');
             } else {
                 seatDiv.classList.add('available');
-                
-                // Add event listeners for drag selection (only for available seats)
-                seatDiv.addEventListener('mousedown', (e) => startSelection(e, row, seat));
-                seatDiv.addEventListener('mouseenter', (e) => continueSelection(e, row, seat));
-                seatDiv.addEventListener('mouseup', stopSelection);
-                
-                // Also support click for single seat toggle
-                seatDiv.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    toggleSeatInZone(row, seat);
-                });
             }
+            
+            // Add event listeners for all seats (occupied will be ignored in logic)
+            seatDiv.addEventListener('mousedown', (e) => startSelection(e, row, seat));
+            seatDiv.addEventListener('mouseenter', (e) => continueSelection(e, row, seat));
+            seatDiv.addEventListener('mouseup', stopSelection);
             
             seatsContainer.appendChild(seatDiv);
         }
@@ -252,13 +246,16 @@ function displaySeatMap(sector) {
 
 function startSelection(e, row, seat) {
     e.preventDefault();
+    e.stopPropagation();
     isSelecting = true;
     selectionStart = { row, seat };
-    toggleSeatInZone(row, seat);
+    // Don't toggle on mousedown, wait to see if it's a drag or click
 }
 
 function continueSelection(e, row, seat) {
     if (isSelecting && selectionStart) {
+        e.preventDefault();
+        
         // Calculate rectangle bounds
         const minRow = Math.min(selectionStart.row, row);
         const maxRow = Math.max(selectionStart.row, row);
@@ -272,17 +269,30 @@ function continueSelection(e, row, seat) {
         for (let r = minRow; r <= maxRow; r++) {
             for (let s = minSeat; s <= maxSeat; s++) {
                 const seatElement = document.querySelector(`[data-row="${r}"][data-seat="${s}"]`);
-                if (seatElement && seatElement.classList.contains('available')) {
+                if (seatElement && seatElement.classList.contains('available') && !seatElement.classList.contains('occupied')) {
                     addSeatToZone(r, s);
                 }
             }
         }
         
         updatePreferredZoneDisplay();
+        checkFormCompletion();
     }
 }
 
-function stopSelection() {
+function stopSelection(e) {
+    if (isSelecting && selectionStart) {
+        // If we didn't move (single click), toggle the seat
+        const currentTarget = e.target;
+        if (currentTarget && currentTarget.dataset.row && currentTarget.dataset.seat) {
+            const row = parseInt(currentTarget.dataset.row);
+            const seat = parseInt(currentTarget.dataset.seat);
+            if (row === selectionStart.row && seat === selectionStart.seat) {
+                // Single click - toggle
+                toggleSeatInZone(row, seat);
+            }
+        }
+    }
     isSelecting = false;
     selectionStart = null;
 }
