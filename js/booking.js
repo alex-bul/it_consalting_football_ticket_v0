@@ -5,6 +5,7 @@ let selectedSector = null;
 let preferredSeats = []; // Array to store preferred seating zone (can be many seats)
 let ticketFanIds = []; // Array to store Fan ID for each ticket
 let isSelecting = false; // For drag selection
+let selectionStart = null; // Starting point for rectangle selection
 
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is logged in
@@ -212,21 +213,29 @@ function displaySeatMap(sector) {
         
         for (let seat = 1; seat <= sector.seatsPerRow; seat++) {
             const seatDiv = document.createElement('div');
-            seatDiv.className = 'seat available';
+            seatDiv.className = 'seat';
             seatDiv.dataset.row = row;
             seatDiv.dataset.seat = seat;
             seatDiv.textContent = seat;
             
-            // Add event listeners for drag selection
-            seatDiv.addEventListener('mousedown', (e) => startSelection(e, row, seat));
-            seatDiv.addEventListener('mouseenter', (e) => continueSelection(e, row, seat));
-            seatDiv.addEventListener('mouseup', stopSelection);
-            
-            // Also support click for single seat selection
-            seatDiv.addEventListener('click', (e) => {
-                e.stopPropagation();
-                toggleSeatInZone(row, seat);
-            });
+            // Randomly mark some seats as occupied (for demo purposes)
+            const isOccupied = Math.random() < 0.3; // 30% occupied
+            if (isOccupied) {
+                seatDiv.classList.add('occupied');
+            } else {
+                seatDiv.classList.add('available');
+                
+                // Add event listeners for drag selection (only for available seats)
+                seatDiv.addEventListener('mousedown', (e) => startSelection(e, row, seat));
+                seatDiv.addEventListener('mouseenter', (e) => continueSelection(e, row, seat));
+                seatDiv.addEventListener('mouseup', stopSelection);
+                
+                // Also support click for single seat toggle
+                seatDiv.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleSeatInZone(row, seat);
+                });
+            }
             
             seatsContainer.appendChild(seatDiv);
         }
@@ -244,34 +253,85 @@ function displaySeatMap(sector) {
 function startSelection(e, row, seat) {
     e.preventDefault();
     isSelecting = true;
+    selectionStart = { row, seat };
     toggleSeatInZone(row, seat);
 }
 
 function continueSelection(e, row, seat) {
-    if (isSelecting) {
-        toggleSeatInZone(row, seat, true); // true = only add, don't toggle
+    if (isSelecting && selectionStart) {
+        // Calculate rectangle bounds
+        const minRow = Math.min(selectionStart.row, row);
+        const maxRow = Math.max(selectionStart.row, row);
+        const minSeat = Math.min(selectionStart.seat, seat);
+        const maxSeat = Math.max(selectionStart.seat, seat);
+        
+        // Clear previous selection and select rectangle
+        clearAllSelections();
+        
+        // Select all seats in rectangle
+        for (let r = minRow; r <= maxRow; r++) {
+            for (let s = minSeat; s <= maxSeat; s++) {
+                const seatElement = document.querySelector(`[data-row="${r}"][data-seat="${s}"]`);
+                if (seatElement && seatElement.classList.contains('available')) {
+                    addSeatToZone(r, s);
+                }
+            }
+        }
+        
+        updatePreferredZoneDisplay();
     }
 }
 
 function stopSelection() {
     isSelecting = false;
+    selectionStart = null;
 }
 
-function toggleSeatInZone(row, seat, onlyAdd = false) {
+function clearAllSelections() {
+    preferredSeats.forEach(s => {
+        const seatElement = document.querySelector(`[data-row="${s.row}"][data-seat="${s.seat}"]`);
+        if (seatElement) {
+            seatElement.classList.remove('selected');
+        }
+    });
+    preferredSeats = [];
+}
+
+function addSeatToZone(row, seat) {
     const seatId = `${row}-${seat}`;
     const seatElement = document.querySelector(`[data-row="${row}"][data-seat="${seat}"]`);
     
-    if (!seatElement) return;
+    if (!seatElement || seatElement.classList.contains('occupied')) return;
     
     // Check if seat is already in preferred zone
     const seatIndex = preferredSeats.findIndex(s => s.id === seatId);
     
-    if (seatIndex > -1 && !onlyAdd) {
-        // Remove from preferred zone
+    if (seatIndex === -1) {
+        // Add to preferred zone
+        preferredSeats.push({
+            id: seatId,
+            row: row,
+            seat: seat
+        });
+        seatElement.classList.add('selected');
+    }
+}
+
+function toggleSeatInZone(row, seat) {
+    const seatId = `${row}-${seat}`;
+    const seatElement = document.querySelector(`[data-row="${row}"][data-seat="${seat}"]`);
+    
+    if (!seatElement || seatElement.classList.contains('occupied')) return;
+    
+    // Check if seat is already in preferred zone
+    const seatIndex = preferredSeats.findIndex(s => s.id === seatId);
+    
+    if (seatIndex > -1) {
+        // Remove from preferred zone (toggle off)
         preferredSeats.splice(seatIndex, 1);
         seatElement.classList.remove('selected');
-    } else if (seatIndex === -1) {
-        // Add to preferred zone
+    } else {
+        // Add to preferred zone (toggle on)
         preferredSeats.push({
             id: seatId,
             row: row,
