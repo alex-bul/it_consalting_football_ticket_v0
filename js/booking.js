@@ -365,25 +365,6 @@ function setupEventListeners() {
             updateFanIdFields(newCount);
         }
         
-        // If zone is selected, reset seat selection and regenerate seat map
-        if (selectedZone) {
-            const maxConsecutiveSeats = selectedZone.seatsPerRow;
-            if (newCount > maxConsecutiveSeats) {
-                const errorDiv = document.getElementById('bookingError');
-                errorDiv.textContent = `В выбранной зоне "${selectedZone.name}" максимум ${maxConsecutiveSeats} мест в ряду. Выберите другую зону или уменьшите количество билетов.`;
-                errorDiv.classList.add('show');
-                setTimeout(() => errorDiv.classList.remove('show'), 5000);
-                selectedZone = null;
-                selectedSeats = [];
-                document.querySelectorAll('.stadium-sector').forEach(s => s.classList.remove('selected'));
-                document.getElementById('seatMapContainer').style.display = 'none';
-            } else {
-                // Reset selected seats when ticket count changes
-                selectedSeats = [];
-                displaySeatMap(selectedZone);
-            }
-        }
-        
         updateTotalPrice();
         checkFormCompletion();
     });
@@ -506,11 +487,11 @@ function checkFormCompletion() {
     
     const submitBtn = document.getElementById('submitBooking');
     
-    // Check if zone is selected and correct number of seats are selected
-    const zoneSelected = selectedZone !== null;
-    const seatsSelected = selectedSeats.length === ticketCount;
+    // Check if sector is selected and at least some preferred seats are selected
+    const sectorSelected = selectedSector !== null;
+    const hasPreferredZone = preferredSeats.length > 0;
     
-    if (zoneSelected && seatsSelected && priceLimit && fullName && email && ofertaAccept && selectedCard && fanIdValid) {
+    if (sectorSelected && hasPreferredZone && priceLimit && fullName && email && ofertaAccept && selectedCard && fanIdValid) {
         submitBtn.disabled = false;
     } else {
         submitBtn.disabled = true;
@@ -526,16 +507,16 @@ function handleBookingSubmit(e) {
     
     const ticketCount = parseInt(document.getElementById('ticketCount').value);
     
-    // Validate zone selection
-    if (!selectedZone) {
-        errorDiv.textContent = 'Выберите зону на карте стадиона';
+    // Validate sector selection
+    if (!selectedSector) {
+        errorDiv.textContent = 'Выберите сектор на карте стадиона';
         errorDiv.classList.add('show');
         return;
     }
     
-    // Validate seat selection
-    if (selectedSeats.length !== ticketCount) {
-        errorDiv.textContent = `Необходимо выбрать ${ticketCount} мест в секторе`;
+    // Validate preferred zone selection
+    if (preferredSeats.length === 0) {
+        errorDiv.textContent = 'Выберите предпочитаемую зону посадки в секторе (можно выбрать несколько мест)';
         errorDiv.classList.add('show');
         return;
     }
@@ -559,10 +540,10 @@ function handleBookingSubmit(e) {
         date: currentMatch.date,
         time: currentMatch.time,
         stadium: currentMatch.stadium,
-        zone: selectedZone.name,
-        zoneId: selectedZone.id,
+        sector: selectedSector.name,
+        sectorId: selectedSector.id,
         ticketCount: ticketCount,
-        selectedSeats: selectedSeats, // Include selected seats
+        preferredZone: preferredSeats, // Preferred seating zone
         priceLimit: parseInt(document.getElementById('priceLimit').value),
         fullName: document.getElementById('fullName').value,
         email: document.getElementById('email').value,
@@ -582,8 +563,22 @@ function handleBookingSubmit(e) {
         // Show success and redirect
         const successDiv = document.createElement('div');
         successDiv.className = 'success-message show';
-        const seatsInfo = selectedSeats.map(s => `Ряд ${s.row}, Место ${s.seat}`).join('; ');
-        successDiv.innerHTML = `<strong>Предзаказ успешно оформлен!</strong><br><br>Зона: ${bookingData.zone}<br>Выбранные места: ${seatsInfo}<br>Количество билетов: ${ticketCount}<br><br>Вы получите уведомление на email.`;
+        
+        // Group preferred seats by rows for display
+        const rowGroups = {};
+        preferredSeats.forEach(s => {
+            if (!rowGroups[s.row]) rowGroups[s.row] = [];
+            rowGroups[s.row].push(s.seat);
+        });
+        const zoneInfo = Object.keys(rowGroups)
+            .sort((a, b) => a - b)
+            .map(row => {
+                const seats = rowGroups[row].sort((a, b) => a - b);
+                return `Ряд ${row}: места ${seats.join(', ')}`;
+            })
+            .join('; ');
+        
+        successDiv.innerHTML = `<strong>Предзаказ успешно оформлен!</strong><br><br>Сектор: ${bookingData.sector}<br>Предпочитаемая зона: ${zoneInfo}<br>Количество билетов: ${ticketCount}<br><br>Система постарается подобрать ${ticketCount} билет(ов) в выбранной зоне.<br>Вы получите уведомление на email.`;
         errorDiv.parentNode.insertBefore(successDiv, errorDiv);
         
         setTimeout(() => {
