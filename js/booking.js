@@ -4,8 +4,8 @@ let selectedCard = null;
 let selectedSector = null;
 let preferredSeats = []; // Array to store preferred seating zone (can be many seats)
 let ticketFanIds = []; // Array to store Fan ID for each ticket
-let isSelecting = false; // For drag selection
-let selectionStart = null; // Starting point for rectangle selection
+let isSelecting = false; // For brush painting
+let brushSize = 1; // Brush size (1x1, 3x3, 5x5, etc.)
 
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is logged in
@@ -182,6 +182,9 @@ function selectZone(sector) {
     // Show seat map for zone selection
     displaySeatMap(sector);
     
+    // Initialize brush size selector
+    initializeBrushSelector();
+    
     updateTotalPrice();
     checkFormCompletion();
 }
@@ -244,57 +247,69 @@ function displaySeatMap(sector) {
     updatePreferredZoneDisplay();
 }
 
+function initializeBrushSelector() {
+    const container = document.getElementById('seatMapContainer');
+    
+    // Check if brush selector already exists
+    if (document.getElementById('brushSelector')) return;
+    
+    const brushDiv = document.createElement('div');
+    brushDiv.id = 'brushSelector';
+    brushDiv.className = 'brush-selector';
+    brushDiv.innerHTML = `
+        <label><strong>Размер кисточки:</strong></label>
+        <button class="brush-btn active" data-size="1">1x1</button>
+        <button class="brush-btn" data-size="3">3x3</button>
+        <button class="brush-btn" data-size="5">5x5</button>
+        <button class="brush-btn" data-size="7">7x7</button>
+    `;
+    
+    // Insert before seat grid
+    const seatGrid = document.getElementById('seatGrid');
+    container.insertBefore(brushDiv, seatGrid);
+    
+    // Add event listeners to brush buttons
+    document.querySelectorAll('.brush-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.brush-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            brushSize = parseInt(this.dataset.size);
+        });
+    });
+}
+
 function startSelection(e, row, seat) {
     e.preventDefault();
     e.stopPropagation();
     isSelecting = true;
-    selectionStart = { row, seat };
-    // Don't toggle on mousedown, wait to see if it's a drag or click
+    paintWithBrush(row, seat);
 }
 
 function continueSelection(e, row, seat) {
-    if (isSelecting && selectionStart) {
+    if (isSelecting) {
         e.preventDefault();
-        
-        // Calculate rectangle bounds
-        const minRow = Math.min(selectionStart.row, row);
-        const maxRow = Math.max(selectionStart.row, row);
-        const minSeat = Math.min(selectionStart.seat, seat);
-        const maxSeat = Math.max(selectionStart.seat, seat);
-        
-        // Clear previous selection and select rectangle
-        clearAllSelections();
-        
-        // Select all seats in rectangle
-        for (let r = minRow; r <= maxRow; r++) {
-            for (let s = minSeat; s <= maxSeat; s++) {
-                const seatElement = document.querySelector(`[data-row="${r}"][data-seat="${s}"]`);
-                if (seatElement && seatElement.classList.contains('available') && !seatElement.classList.contains('occupied')) {
-                    addSeatToZone(r, s);
-                }
-            }
-        }
-        
-        updatePreferredZoneDisplay();
-        checkFormCompletion();
+        paintWithBrush(row, seat);
     }
 }
 
 function stopSelection(e) {
-    if (isSelecting && selectionStart) {
-        // If we didn't move (single click), toggle the seat
-        const currentTarget = e.target;
-        if (currentTarget && currentTarget.dataset.row && currentTarget.dataset.seat) {
-            const row = parseInt(currentTarget.dataset.row);
-            const seat = parseInt(currentTarget.dataset.seat);
-            if (row === selectionStart.row && seat === selectionStart.seat) {
-                // Single click - toggle
-                toggleSeatInZone(row, seat);
+    isSelecting = false;
+}
+
+function paintWithBrush(centerRow, centerSeat) {
+    const radius = Math.floor(brushSize / 2);
+    
+    for (let r = centerRow - radius; r <= centerRow + radius; r++) {
+        for (let s = centerSeat - radius; s <= centerSeat + radius; s++) {
+            const seatElement = document.querySelector(`[data-row="${r}"][data-seat="${s}"]`);
+            if (seatElement && seatElement.classList.contains('available') && !seatElement.classList.contains('occupied')) {
+                addSeatToZone(r, s);
             }
         }
     }
-    isSelecting = false;
-    selectionStart = null;
+    
+    updatePreferredZoneDisplay();
+    checkFormCompletion();
 }
 
 function clearAllSelections() {
