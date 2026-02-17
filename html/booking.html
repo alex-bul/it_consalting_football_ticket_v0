@@ -10,7 +10,7 @@
     <header>
         <div class="container">
             <div class="header-content">
-                <h1>⚽ Предзаказ билетов</h1>
+                <a href="index.html" class="logo-link"><h1>⚽ Предзаказ билетов</h1></a>
                 <nav>
                     <a href="index.html">Матчи</a>
                     <a href="profile.html" id="profileLink">Профиль</a>
@@ -27,29 +27,49 @@
 
             <form id="bookingForm" class="booking-form">
                 <div class="form-section">
-                    <h3>1. Выбор мест</h3>
-                    <div id="stadiumMap" class="stadium-map"></div>
+                    <h3>1. Выбор мест на карте стадиона</h3>
                     
-                    <div class="form-group">
-                        <label for="sectorSelect">Сектор</label>
-                        <select id="sectorSelect" required>
-                            <option value="">Выберите сектор</option>
-                        </select>
+                    <!-- Stadium Map Visualization -->
+                    <div class="stadium-visualization">
+                        <div class="stadium-field">
+                            <div class="field-label">ПОЛЕ</div>
+                        </div>
+                        <div id="stadiumSectors" class="stadium-sectors"></div>
+                    </div>
+                    
+                    <div class="seat-selection-info">
+                        <p><strong>Выбранный сектор:</strong> <span id="selectedSectorName">Не выбран</span></p>
+                        <p><strong>Цена сектора:</strong> <span id="selectedSectorPrice">-</span></p>
                     </div>
 
-                    <div class="form-group">
-                        <label for="rowInput">Ряд (или диапазон, например: 5-10)</label>
-                        <input type="text" id="rowInput" placeholder="Например: 5 или 5-10" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="seatsInput">Места (через запятую или диапазон)</label>
-                        <input type="text" id="seatsInput" placeholder="Например: 1,2,3 или 1-5" required>
+                    <!-- Interactive Seat Grid -->
+                    <div id="seatMapContainer" style="display: none;">
+                        <h4>Выберите места в секторе <span id="currentSectorName"></span></h4>
+                        <div class="seat-legend">
+                            <div class="legend-item">
+                                <div class="seat-icon available"></div>
+                                <span>Доступно</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="seat-icon selected"></div>
+                                <span>Выбрано</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="seat-icon occupied"></div>
+                                <span>Занято</span>
+                            </div>
+                        </div>
+                        <div id="seatGrid" class="seat-grid"></div>
+                        <div class="selected-seats-summary">
+                            <p><strong>Выбрано мест:</strong> <span id="selectedSeatsCount">0</span></p>
+                            <p><strong>Выбранные места:</strong> <span id="selectedSeatsList">-</span></p>
+                        </div>
                     </div>
 
                     <div class="form-group">
                         <label for="ticketCount">Количество билетов</label>
-                        <input type="number" id="ticketCount" min="1" max="4" value="1" required>
+                        <input type="number" id="ticketCount" min="1" max="10" value="1" required>
+                        <span class="field-hint">Максимум 10 билетов за один заказ</span>
                     </div>
                 </div>
 
@@ -57,6 +77,7 @@
                     <h3>2. Лимит цены</h3>
                     <div class="price-info">
                         <p>Базовая цена: <strong id="basePrice">-</strong> ₽</p>
+                        <p>Итого за <span id="totalTickets">1</span> билет(ов): <strong id="totalPrice">-</strong> ₽</p>
                     </div>
                     <div class="form-group">
                         <label for="priceLimit">Максимальная цена за один билет (₽)</label>

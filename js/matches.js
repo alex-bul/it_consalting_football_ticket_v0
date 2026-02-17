@@ -24,10 +24,11 @@ function createMatchCard(match) {
         window.location.href = `match.html?id=${match.id}`;
     };
     
-    const badge = match.preorderAvailable ? 
-        `<span class="match-badge ${match.fanIdRequired ? 'fan-id-required' : ''}">
-            ${match.fanIdRequired ? '🎫 Fan ID' : '✓ Доступен предзаказ'}
-        </span>` : '';
+    // Only show badge if preorder is available AND Fan ID is required
+    let badge = '';
+    if (match.preorderAvailable && match.fanIdRequired) {
+        badge = `<span class="match-badge fan-id-required">🎫 Fan ID</span>`;
+    }
     
     card.innerHTML = `
         ${badge}

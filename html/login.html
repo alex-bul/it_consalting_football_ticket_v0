@@ -10,7 +10,7 @@
     <header>
         <div class="container">
             <div class="header-content">
-                <h1>⚽ Предзаказ билетов</h1>
+                <a href="index.html" class="logo-link"><h1>⚽ Предзаказ билетов</h1></a>
                 <nav>
                     <a href="index.html">Матчи</a>
                     <a href="profile.html">Профиль</a>
@@ -22,50 +22,44 @@
 
     <main class="container">
         <div class="auth-container">
-            <div class="auth-tabs">
-                <button class="auth-tab active" data-tab="login">Вход</button>
-                <button class="auth-tab" data-tab="register">Регистрация</button>
-            </div>
-
-            <!-- Login Form -->
-            <form id="loginForm" class="auth-form">
-                <h2>Войти в систему</h2>
+            <h2 style="text-align: center; padding: 2rem 2rem 0;">Вход по Email</h2>
+            
+            <!-- Step 1: Email Input -->
+            <form id="emailForm" class="auth-form">
+                <p style="color: var(--text-light); margin-bottom: 1.5rem;">
+                    Введите ваш email. Мы отправим вам код подтверждения.
+                </p>
                 <div class="form-group">
-                    <label for="loginEmail">Email</label>
-                    <input type="email" id="loginEmail" required>
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="example@mail.com" required>
                 </div>
-                <div class="form-group">
-                    <label for="loginPassword">Пароль</label>
-                    <input type="password" id="loginPassword" required>
-                </div>
-                <div id="loginError" class="error-message"></div>
-                <button type="submit" class="btn btn-primary">Войти</button>
+                <div id="emailError" class="error-message"></div>
+                <button type="submit" class="btn btn-primary btn-large">Получить код</button>
             </form>
 
-            <!-- Register Form -->
-            <form id="registerForm" class="auth-form" style="display: none;">
-                <h2>Регистрация</h2>
+            <!-- Step 2: Code Verification -->
+            <form id="codeForm" class="auth-form" style="display: none;">
+                <p style="color: var(--text-light); margin-bottom: 1rem;">
+                    Код отправлен на <strong id="emailDisplay"></strong>
+                </p>
                 <div class="form-group">
-                    <label for="registerName">Фамилия и Имя</label>
-                    <input type="text" id="registerName" required>
+                    <label for="verificationCode">Код подтверждения</label>
+                    <input type="text" id="verificationCode" placeholder="000000" maxlength="6" required 
+                           style="font-size: 1.5rem; text-align: center; letter-spacing: 0.5rem;">
                 </div>
-                <div class="form-group">
-                    <label for="registerEmail">Email</label>
-                    <input type="email" id="registerEmail" required>
-                    <span class="field-hint">Формат: example@mail.com</span>
+                <div id="nameSection" class="form-group" style="display: none;">
+                    <label for="userName">Ваше имя</label>
+                    <input type="text" id="userName" placeholder="Иван Иванов" required>
+                    <span class="field-hint">Это новый аккаунт. Укажите ваше имя.</span>
                 </div>
-                <div class="form-group">
-                    <label for="registerPassword">Пароль</label>
-                    <input type="password" id="registerPassword" required>
-                    <span class="field-hint">Минимум 8 символов, цифры и заглавные буквы</span>
-                </div>
-                <div class="form-group">
-                    <label for="registerPasswordConfirm">Подтверждение пароля</label>
-                    <input type="password" id="registerPasswordConfirm" required>
-                </div>
-                <div id="registerError" class="error-message"></div>
-                <div id="registerSuccess" class="success-message"></div>
-                <button type="submit" class="btn btn-primary" id="registerBtn">Зарегистрироваться</button>
+                <div id="codeError" class="error-message"></div>
+                <button type="submit" class="btn btn-primary btn-large">Войти</button>
+                <button type="button" id="resendCode" class="btn btn-secondary btn-large" style="margin-top: 1rem;">
+                    Отправить код повторно
+                </button>
+                <button type="button" id="changeEmail" class="btn btn-secondary btn-large" style="margin-top: 0.5rem;">
+                    Изменить email
+                </button>
             </form>
         </div>
     </main>

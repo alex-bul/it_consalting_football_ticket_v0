@@ -28,7 +28,7 @@ const CookieManager = {
     }
 };
 
-// Auth state management
+// Auth state management with email verification code
 const Auth = {
     isLoggedIn: function() {
         return CookieManager.get('currentUser') !== null;
@@ -38,42 +38,88 @@ const Auth = {
         return CookieManager.get('currentUser');
     },
     
-    login: function(email, password) {
-        const users = CookieManager.get('users') || [];
-        const user = users.find(u => u.email === email && u.password === password);
-        
-        if (user) {
-            CookieManager.set('currentUser', {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                fanId: user.fanId || null
-            });
-            return { success: true };
-        }
-        return { success: false, error: 'Неверный email или пароль' };
-    },
-    
-    register: function(name, email, password) {
-        const users = CookieManager.get('users') || [];
-        
-        if (users.find(u => u.email === email)) {
-            return { success: false, error: 'Пользователь с таким Email уже существует' };
+    // Send verification code to email
+    sendVerificationCode: function(email) {
+        if (!validateEmail(email)) {
+            return { success: false, error: 'Некорректный формат email' };
         }
         
-        const newUser = {
-            id: Date.now().toString(),
-            name: name,
+        // Generate 6-digit code
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Store code with expiration (5 minutes)
+        const verificationData = {
             email: email,
-            password: password,
-            fanId: null,
-            createdAt: new Date().toISOString()
+            code: code,
+            expiresAt: Date.now() + 5 * 60 * 1000 // 5 minutes
         };
         
-        users.push(newUser);
-        CookieManager.set('users', users);
+        CookieManager.set('verificationCode', verificationData, 1/24); // 1 hour cookie
         
-        return { success: true, message: 'Регистрация успешна! Письмо с подтверждением отправлено на вашу почту.' };
+        // In real app, send email here
+        console.log(`Verification code for ${email}: ${code}`);
+        
+        // For demo purposes, show code in alert
+        alert(`Код подтверждения: ${code}\n(В реальном приложении код будет отправлен на email)`);
+        
+        return { success: true, message: 'Код отправлен на ваш email' };
+    },
+    
+    // Verify code and login/register
+    verifyCode: function(email, code, name = null) {
+        const verificationData = CookieManager.get('verificationCode');
+        
+        if (!verificationData) {
+            return { success: false, error: 'Код не найден. Запросите новый код.' };
+        }
+        
+        if (verificationData.email !== email) {
+            return { success: false, error: 'Email не совпадает' };
+        }
+        
+        if (Date.now() > verificationData.expiresAt) {
+            CookieManager.delete('verificationCode');
+            return { success: false, error: 'Код истек. Запросите новый код.' };
+        }
+        
+        if (verificationData.code !== code) {
+            return { success: false, error: 'Неверный код' };
+        }
+        
+        // Code is valid, clear it
+        CookieManager.delete('verificationCode');
+        
+        // Check if user exists
+        const users = CookieManager.get('users') || [];
+        let user = users.find(u => u.email === email);
+        
+        if (!user) {
+            // Create new user
+            if (!name || name.trim() === '') {
+                return { success: false, error: 'Укажите ваше имя для регистрации', needsName: true };
+            }
+            
+            user = {
+                id: Date.now().toString(),
+                name: name.trim(),
+                email: email,
+                fanId: null,
+                createdAt: new Date().toISOString()
+            };
+            
+            users.push(user);
+            CookieManager.set('users', users);
+        }
+        
+        // Login user
+        CookieManager.set('currentUser', {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            fanId: user.fanId || null
+        });
+        
+        return { success: true, isNewUser: !users.find(u => u.email === email) };
     },
     
     logout: function() {

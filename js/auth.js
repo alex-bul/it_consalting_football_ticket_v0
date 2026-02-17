@@ -1,4 +1,4 @@
-// Auth page functionality
+// Auth page functionality - Email + Code verification
 document.addEventListener('DOMContentLoaded', function() {
     // Check if already logged in
     if (Auth.isLoggedIn()) {
@@ -6,36 +6,70 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // Tab switching
-    const tabs = document.querySelectorAll('.auth-tab');
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
+    const emailForm = document.getElementById('emailForm');
+    const codeForm = document.getElementById('codeForm');
+    const emailInput = document.getElementById('email');
+    const emailDisplay = document.getElementById('emailDisplay');
+    const verificationCodeInput = document.getElementById('verificationCode');
+    const nameSection = document.getElementById('nameSection');
+    const userNameInput = document.getElementById('userName');
+    const resendCodeBtn = document.getElementById('resendCode');
+    const changeEmailBtn = document.getElementById('changeEmail');
     
-    tabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-            tabs.forEach(t => t.classList.remove('active'));
-            this.classList.add('active');
-            
-            const tabName = this.dataset.tab;
-            if (tabName === 'login') {
-                loginForm.style.display = 'block';
-                registerForm.style.display = 'none';
-            } else {
-                loginForm.style.display = 'none';
-                registerForm.style.display = 'block';
-            }
-        });
-    });
+    let currentEmail = '';
     
-    // Login form
-    loginForm.addEventListener('submit', function(e) {
+    // Step 1: Email submission
+    emailForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
-        const errorDiv = document.getElementById('loginError');
+        const email = emailInput.value.trim();
+        const errorDiv = document.getElementById('emailError');
         
-        const result = Auth.login(email, password);
+        errorDiv.classList.remove('show');
+        
+        if (!validateEmail(email)) {
+            errorDiv.textContent = 'Некорректный формат email';
+            errorDiv.classList.add('show');
+            return;
+        }
+        
+        // Send verification code
+        const result = Auth.sendVerificationCode(email);
+        
+        if (result.success) {
+            currentEmail = email;
+            emailDisplay.textContent = email;
+            
+            // Switch to code form
+            emailForm.style.display = 'none';
+            codeForm.style.display = 'block';
+            
+            // Focus on code input
+            setTimeout(() => verificationCodeInput.focus(), 100);
+        } else {
+            errorDiv.textContent = result.error;
+            errorDiv.classList.add('show');
+        }
+    });
+    
+    // Step 2: Code verification
+    codeForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const code = verificationCodeInput.value.trim();
+        const errorDiv = document.getElementById('codeError');
+        const name = userNameInput.value.trim();
+        
+        errorDiv.classList.remove('show');
+        
+        if (code.length !== 6) {
+            errorDiv.textContent = 'Код должен содержать 6 цифр';
+            errorDiv.classList.add('show');
+            return;
+        }
+        
+        // Verify code
+        const result = Auth.verifyCode(currentEmail, code, name);
         
         if (result.success) {
             // Check if there's a redirect URL
@@ -48,85 +82,48 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 window.location.href = 'profile.html';
             }
+        } else if (result.needsName) {
+            // Show name input for new users
+            nameSection.style.display = 'block';
+            userNameInput.required = true;
+            errorDiv.textContent = result.error;
+            errorDiv.classList.add('show');
         } else {
             errorDiv.textContent = result.error;
             errorDiv.classList.add('show');
         }
     });
     
-    // Register form
-    const registerBtn = document.getElementById('registerBtn');
-    
-    registerForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const name = document.getElementById('registerName').value;
-        const email = document.getElementById('registerEmail').value;
-        const password = document.getElementById('registerPassword').value;
-        const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
-        const errorDiv = document.getElementById('registerError');
-        const successDiv = document.getElementById('registerSuccess');
-        
-        // Clear previous messages
+    // Resend code
+    resendCodeBtn.addEventListener('click', function() {
+        const errorDiv = document.getElementById('codeError');
         errorDiv.classList.remove('show');
-        successDiv.classList.remove('show');
         
-        // Validate email
-        if (!validateEmail(email)) {
-            errorDiv.textContent = 'Некорректный формат email';
-            errorDiv.classList.add('show');
-            return;
-        }
-        
-        // Validate password
-        if (!validatePassword(password)) {
-            errorDiv.textContent = 'Пароль должен содержать минимум 8 символов, цифры и заглавные буквы';
-            errorDiv.classList.add('show');
-            return;
-        }
-        
-        // Check password match
-        if (password !== passwordConfirm) {
-            errorDiv.textContent = 'Пароли не совпадают';
-            errorDiv.classList.add('show');
-            return;
-        }
-        
-        const result = Auth.register(name, email, password);
+        const result = Auth.sendVerificationCode(currentEmail);
         
         if (result.success) {
-            successDiv.textContent = result.message;
-            successDiv.classList.add('show');
-            registerForm.reset();
-            
-            // Auto-login after 2 seconds
-            setTimeout(() => {
-                Auth.login(email, password);
-                window.location.href = 'profile.html';
-            }, 2000);
+            alert('Новый код отправлен на ' + currentEmail);
+            verificationCodeInput.value = '';
+            verificationCodeInput.focus();
         } else {
             errorDiv.textContent = result.error;
             errorDiv.classList.add('show');
         }
     });
     
-    // Real-time validation
-    document.getElementById('registerEmail').addEventListener('blur', function() {
-        if (this.value && !validateEmail(this.value)) {
-            this.style.borderColor = 'var(--danger-color)';
-        } else {
-            this.style.borderColor = '';
-        }
+    // Change email
+    changeEmailBtn.addEventListener('click', function() {
+        codeForm.style.display = 'none';
+        emailForm.style.display = 'block';
+        verificationCodeInput.value = '';
+        nameSection.style.display = 'none';
+        userNameInput.value = '';
+        document.getElementById('codeError').classList.remove('show');
+        emailInput.focus();
     });
     
-    document.getElementById('registerPassword').addEventListener('input', function() {
-        const btn = document.getElementById('registerBtn');
-        if (this.value && !validatePassword(this.value)) {
-            this.style.borderColor = 'var(--danger-color)';
-            btn.disabled = true;
-        } else {
-            this.style.borderColor = '';
-            btn.disabled = false;
-        }
+    // Auto-format code input (only digits)
+    verificationCodeInput.addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '');
     });
 });
