@@ -75,45 +75,43 @@ function displayMatchInfo() {
 
 function createStadiumVisualization() {
     const container = document.getElementById('stadiumSectors');
+    const fieldContainer = document.querySelector('.stadium-field');
+    const visualization = document.querySelector('.stadium-visualization');
+    
+    // Clear existing sectors
     container.innerHTML = '';
     
-    // Create sector layout (simulating stadium structure)
-    const sectorLayout = [
-        ['A', null, 'B'],
-        ['D', 'FIELD', 'E'],
-        ['C', null, 'VIP']
+    // Create sector layout - sectors surround the field
+    // Grid positions:
+    // Row 1: A, (empty), B
+    // Row 2: D, FIELD, E
+    // Row 3: C, (empty), VIP
+    
+    const sectorPositions = [
+        { id: 'A', gridColumn: '1', gridRow: '1' },
+        { id: 'B', gridColumn: '3', gridRow: '1' },
+        { id: 'D', gridColumn: '1', gridRow: '2' },
+        { id: 'E', gridColumn: '3', gridRow: '2' },
+        { id: 'C', gridColumn: '1', gridRow: '3' },
+        { id: 'VIP', gridColumn: '3', gridRow: '3' }
     ];
     
-    sectorLayout.forEach(row => {
-        const rowDiv = document.createElement('div');
-        rowDiv.className = 'sector-row';
-        
-        row.forEach(sectorId => {
-            if (sectorId === 'FIELD') {
-                // Field is already displayed separately
-                return;
-            } else if (sectorId === null) {
-                const spacer = document.createElement('div');
-                spacer.className = 'sector-spacer';
-                rowDiv.appendChild(spacer);
-            } else {
-                const sector = currentMatch.sectors.find(s => s.id === sectorId);
-                if (sector) {
-                    const sectorDiv = document.createElement('div');
-                    sectorDiv.className = 'stadium-sector';
-                    sectorDiv.dataset.sectorId = sector.id;
-                    sectorDiv.innerHTML = `
-                        <div class="sector-name">${sector.name}</div>
-                        <div class="sector-price">от ${sector.price} ₽</div>
-                        <div class="sector-capacity">${sector.rows}x${sector.seatsPerRow} мест</div>
-                    `;
-                    sectorDiv.onclick = () => selectSector(sector);
-                    rowDiv.appendChild(sectorDiv);
-                }
-            }
-        });
-        
-        container.appendChild(rowDiv);
+    sectorPositions.forEach(position => {
+        const sector = currentMatch.sectors.find(s => s.id === position.id);
+        if (sector) {
+            const sectorDiv = document.createElement('div');
+            sectorDiv.className = 'stadium-sector';
+            sectorDiv.dataset.sectorId = sector.id;
+            sectorDiv.style.gridColumn = position.gridColumn;
+            sectorDiv.style.gridRow = position.gridRow;
+            sectorDiv.innerHTML = `
+                <div class="sector-name">${sector.name}</div>
+                <div class="sector-price">от ${sector.price} ₽</div>
+                <div class="sector-capacity">${sector.rows}x${sector.seatsPerRow} мест</div>
+            `;
+            sectorDiv.onclick = () => selectSector(sector);
+            visualization.appendChild(sectorDiv);
+        }
     });
 }
 
