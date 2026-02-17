@@ -86,6 +86,19 @@ function displayPreorders(userId) {
         
         const canCancel = preorder.status === 'pending';
         
+        // Handle both old format (seats) and new format (zone)
+        const seatingInfo = preorder.zone
+            ? `🎫 Зона: ${preorder.zone}${preorder.ticketCount > 1 ? ' (места будут в один ряд)' : ''}`
+            : `🎫 Сектор ${preorder.sector}, ${preorder.seats || 'Места не указаны'}`;
+        
+        // Handle Fan IDs - can be array or single value
+        let fanIdInfo = '';
+        if (preorder.fanIds && Array.isArray(preorder.fanIds)) {
+            fanIdInfo = `<p>🎫 Fan ID: ${preorder.fanIds.join(', ')}</p>`;
+        } else if (preorder.fanId) {
+            fanIdInfo = `<p>🎫 Fan ID: ${preorder.fanId}</p>`;
+        }
+        
         preorderDiv.innerHTML = `
             <div class="preorder-header">
                 <div class="preorder-title">${preorder.matchTitle}</div>
@@ -95,9 +108,9 @@ function displayPreorders(userId) {
                 <p><strong>${preorder.tournament}</strong></p>
                 <p>📅 ${formatDate(preorder.date)} в ${preorder.time}</p>
                 <p>🏟️ ${preorder.stadium}</p>
-                <p>🎫 Сектор ${preorder.sector}, Ряд ${preorder.row}, Места: ${preorder.seats}</p>
-                <p>💰 Лимит цены: ${preorder.priceLimit} ₽ × ${preorder.ticketCount} билет(ов)</p>
-                ${preorder.fanId ? `<p>🎫 Fan ID: ${preorder.fanId}</p>` : ''}
+                <p>${seatingInfo}</p>
+                <p>💰 Лимит цены: ${preorder.priceLimit} ₽ × ${preorder.ticketCount} билет(ов) = ${preorder.priceLimit * preorder.ticketCount} ₽</p>
+                ${fanIdInfo}
                 <p style="font-size: 0.75rem; margin-top: 0.5rem;">Создан: ${new Date(preorder.createdAt).toLocaleString('ru-RU')}</p>
             </div>
             ${canCancel ? `<button class="btn btn-danger" onclick="cancelPreorder('${preorder.id}')">Отменить предзаказ</button>` : ''}

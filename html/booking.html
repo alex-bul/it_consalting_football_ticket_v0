@@ -27,7 +27,8 @@
 
             <form id="bookingForm" class="booking-form">
                 <div class="form-section">
-                    <h3>1. Выбор мест на карте стадиона</h3>
+                    <h3>1. Выбор зоны на карте стадиона</h3>
+                    <p class="info-text">При оформлении предзаказа вы выбираете зону, где хотели бы сидеть. Конкретные места будут назначены системой при выдаче билетов.</p>
                     
                     <!-- Stadium Map Visualization -->
                     <div class="stadium-visualization">
@@ -38,11 +39,11 @@
                     </div>
                     
                     <div class="seat-selection-info">
-                        <p><strong>Выбранный сектор:</strong> <span id="selectedSectorName">Не выбран</span></p>
-                        <p><strong>Цена сектора:</strong> <span id="selectedSectorPrice">-</span></p>
+                        <p><strong>Выбранная зона:</strong> <span id="selectedSectorName">Не выбрана</span></p>
+                        <p><strong>Цена зоны:</strong> <span id="selectedSectorPrice">-</span></p>
                     </div>
 
-                    <!-- Interactive Seat Grid -->
+                    <!-- Interactive Seat Grid - Hidden for zone selection -->
                     <div id="seatMapContainer" style="display: none;">
                         <h4>Выберите места в секторе <span id="currentSectorName"></span></h4>
                         <div class="seat-legend">
@@ -69,7 +70,7 @@
                     <div class="form-group">
                         <label for="ticketCount">Количество билетов</label>
                         <input type="number" id="ticketCount" min="1" max="10" value="1" required>
-                        <span class="field-hint">Максимум 10 билетов за один заказ</span>
+                        <span class="field-hint">Максимум 10 билетов за один заказ. При выборе нескольких билетов система разместит всех в один ряд рядом друг с другом.</span>
                     </div>
                 </div>
 
@@ -96,10 +97,10 @@
                         <label for="email">Email</label>
                         <input type="email" id="email" required>
                     </div>
-                    <div id="fanIdSection" class="form-group" style="display: none;">
-                        <label for="fanId">Fan ID</label>
-                        <input type="text" id="fanId" placeholder="Введите номер Fan ID">
-                        <span class="field-hint warning">⚠️ Для посещения данного матча требуется Fan ID</span>
+                    <div id="fanIdSection" style="display: none;">
+                        <h4>Fan ID для каждого билета</h4>
+                        <p class="info-text">Для посещения данного матча требуется Fan ID для каждого билета</p>
+                        <div id="fanIdContainer"></div>
                     </div>
                 </div>
 

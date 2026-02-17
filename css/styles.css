@@ -1144,6 +1144,18 @@ nav a:hover {
     font-size: 0.875rem;
 }
 
+.zone-info-box {
+    background: #EFF6FF;
+    border-left: 4px solid var(--secondary-color);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.zone-info-box p {
+    margin: 0;
+}
+
 /* Footer */
 footer {
     background: var(--bg-white);

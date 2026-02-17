@@ -1,8 +1,8 @@
-// Booking page functionality with interactive seat map
+// Booking page functionality with zone selection for preorders
 let currentMatch = null;
 let selectedCard = null;
-let selectedSector = null;
-let selectedSeats = [];
+let selectedZone = null;
+let ticketFanIds = []; // Array to store Fan ID for each ticket
 
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is logged in
@@ -44,16 +44,8 @@ function initializeBookingForm() {
     document.getElementById('fullName').value = user.name;
     document.getElementById('email').value = user.email;
     
-    // Show Fan ID field if required
-    if (currentMatch.fanIdRequired) {
-        const fanIdSection = document.getElementById('fanIdSection');
-        fanIdSection.style.display = 'block';
-        document.getElementById('fanId').required = true;
-        
-        if (user.fanId) {
-            document.getElementById('fanId').value = user.fanId;
-        }
-    }
+    // Initialize Fan ID fields based on match requirements
+    initializeFanIdFields();
     
     // Load saved cards
     loadSavedCards();
@@ -69,8 +61,59 @@ function displayMatchInfo() {
         <p><strong>${currentMatch.tournament}</strong></p>
         <p>📅 ${formatDate(currentMatch.date)} в ${currentMatch.time}</p>
         <p>🏟️ ${currentMatch.stadium}</p>
-        ${currentMatch.fanIdRequired ? '<p style="color: var(--accent-color); font-weight: 600;">⚠️ Требуется Fan ID</p>' : ''}
+        ${currentMatch.fanIdRequired ? '<p style="color: var(--accent-color); font-weight: 600;">⚠️ Требуется Fan ID для каждого билета</p>' : ''}
     `;
+}
+
+function initializeFanIdFields() {
+    const ticketCount = parseInt(document.getElementById('ticketCount').value);
+    updateFanIdFields(ticketCount);
+}
+
+function updateFanIdFields(ticketCount) {
+    const fanIdSection = document.getElementById('fanIdSection');
+    const fanIdContainer = document.getElementById('fanIdContainer');
+    
+    if (!currentMatch.fanIdRequired) {
+        fanIdSection.style.display = 'none';
+        ticketFanIds = [];
+        return;
+    }
+    
+    fanIdSection.style.display = 'block';
+    fanIdContainer.innerHTML = '';
+    
+    const user = Auth.getCurrentUser();
+    
+    for (let i = 0; i < ticketCount; i++) {
+        const fanIdGroup = document.createElement('div');
+        fanIdGroup.className = 'form-group';
+        fanIdGroup.innerHTML = `
+            <label for="fanId${i}">Fan ID для билета ${i + 1}</label>
+            <input type="text" id="fanId${i}" class="fan-id-input" data-ticket-index="${i}" placeholder="Введите номер Fan ID" required>
+            <span class="field-hint warning">⚠️ Обязательное поле для посещения матча</span>
+        `;
+        fanIdContainer.appendChild(fanIdGroup);
+        
+        // Pre-fill first ticket with user's Fan ID if available
+        if (i === 0 && user.fanId) {
+            setTimeout(() => {
+                document.getElementById(`fanId${i}`).value = user.fanId;
+            }, 0);
+        }
+    }
+    
+    // Initialize ticketFanIds array
+    ticketFanIds = new Array(ticketCount).fill('');
+    
+    // Add event listeners to Fan ID inputs
+    document.querySelectorAll('.fan-id-input').forEach(input => {
+        input.addEventListener('input', function() {
+            const index = parseInt(this.dataset.ticketIndex);
+            ticketFanIds[index] = this.value.trim();
+            checkFormCompletion();
+        });
+    });
 }
 
 function createStadiumVisualization() {
@@ -109,143 +152,75 @@ function createStadiumVisualization() {
                 <div class="sector-price">от ${sector.price} ₽</div>
                 <div class="sector-capacity">${sector.rows}x${sector.seatsPerRow} мест</div>
             `;
-            sectorDiv.onclick = () => selectSector(sector);
+            sectorDiv.onclick = () => selectZone(sector);
             visualization.appendChild(sectorDiv);
         }
     });
 }
 
-function selectSector(sector) {
-    selectedSector = sector;
-    selectedSeats = [];
+function selectZone(zone) {
+    const ticketCount = parseInt(document.getElementById('ticketCount').value);
+    
+    // Check if zone has enough consecutive seats
+    const maxConsecutiveSeats = zone.seatsPerRow;
+    if (ticketCount > maxConsecutiveSeats) {
+        const errorDiv = document.getElementById('bookingError');
+        errorDiv.textContent = `В зоне "${zone.name}" максимум ${maxConsecutiveSeats} мест в ряду. Выберите другую зону или уменьшите количество билетов.`;
+        errorDiv.classList.add('show');
+        setTimeout(() => errorDiv.classList.remove('show'), 5000);
+        return;
+    }
+    
+    selectedZone = zone;
     
     // Update visual selection
     document.querySelectorAll('.stadium-sector').forEach(s => s.classList.remove('selected'));
-    document.querySelector(`[data-sector-id="${sector.id}"]`).classList.add('selected');
+    document.querySelector(`[data-sector-id="${zone.id}"]`).classList.add('selected');
     
     // Update info
-    document.getElementById('selectedSectorName').textContent = sector.name;
-    document.getElementById('selectedSectorPrice').textContent = `${sector.price} ₽`;
-    document.getElementById('currentSectorName').textContent = sector.name;
+    document.getElementById('selectedSectorName').textContent = zone.name;
+    document.getElementById('selectedSectorPrice').textContent = `${zone.price} ₽`;
     
     // Update base price
-    document.getElementById('basePrice').textContent = `${sector.price} ₽`;
-    document.getElementById('priceLimit').min = sector.price;
-    document.getElementById('priceLimit').value = sector.price;
+    document.getElementById('basePrice').textContent = `${zone.price} ₽`;
+    document.getElementById('priceLimit').min = zone.price;
+    document.getElementById('priceLimit').value = zone.price;
     
-    // Show seat map
-    document.getElementById('seatMapContainer').style.display = 'block';
-    createSeatGrid(sector);
+    // Hide seat map container (not needed for zone selection)
+    document.getElementById('seatMapContainer').style.display = 'none';
+    
+    // Show zone selection info
+    showZoneSelectionInfo(zone, ticketCount);
     
     updateTotalPrice();
     checkFormCompletion();
 }
 
-function createSeatGrid(sector) {
-    const grid = document.getElementById('seatGrid');
-    grid.innerHTML = '';
-    grid.style.setProperty('--seats-per-row', sector.seatsPerRow);
-    
-    // Simulate some occupied seats (random for demo)
-    const occupiedSeats = generateOccupiedSeats(sector.rows, sector.seatsPerRow);
-    
-    for (let row = 1; row <= sector.rows; row++) {
-        const rowDiv = document.createElement('div');
-        rowDiv.className = 'seat-row';
-        
-        // Row label
-        const rowLabel = document.createElement('div');
-        rowLabel.className = 'row-label';
-        rowLabel.textContent = `Ряд ${row}`;
-        rowDiv.appendChild(rowLabel);
-        
-        // Seats
-        const seatsContainer = document.createElement('div');
-        seatsContainer.className = 'seats-container';
-        
-        for (let seat = 1; seat <= sector.seatsPerRow; seat++) {
-            const seatDiv = document.createElement('div');
-            const seatId = `${row}-${seat}`;
-            const isOccupied = occupiedSeats.has(seatId);
-            
-            seatDiv.className = 'seat';
-            if (isOccupied) {
-                seatDiv.classList.add('occupied');
-            } else {
-                seatDiv.classList.add('available');
-            }
-            
-            seatDiv.dataset.row = row;
-            seatDiv.dataset.seat = seat;
-            seatDiv.dataset.seatId = seatId;
-            seatDiv.textContent = seat;
-            
-            if (!isOccupied) {
-                seatDiv.onclick = () => toggleSeat(seatDiv, row, seat);
-            }
-            
-            seatsContainer.appendChild(seatDiv);
-        }
-        
-        rowDiv.appendChild(seatsContainer);
-        grid.appendChild(rowDiv);
-    }
-}
-
-function generateOccupiedSeats(rows, seatsPerRow) {
-    const occupied = new Set();
-    const occupiedCount = Math.floor(rows * seatsPerRow * 0.3); // 30% occupied
-    
-    for (let i = 0; i < occupiedCount; i++) {
-        const row = Math.floor(Math.random() * rows) + 1;
-        const seat = Math.floor(Math.random() * seatsPerRow) + 1;
-        occupied.add(`${row}-${seat}`);
+function showZoneSelectionInfo(zone, ticketCount) {
+    const infoDiv = document.getElementById('zoneSelectionInfo');
+    if (!infoDiv) {
+        const container = document.querySelector('.seat-selection-info');
+        const newInfoDiv = document.createElement('div');
+        newInfoDiv.id = 'zoneSelectionInfo';
+        newInfoDiv.className = 'zone-info-box';
+        container.appendChild(newInfoDiv);
     }
     
-    return occupied;
-}
-
-function toggleSeat(seatDiv, row, seat) {
-    const seatId = `${row}-${seat}`;
-    const ticketCount = parseInt(document.getElementById('ticketCount').value);
-    
-    if (seatDiv.classList.contains('selected')) {
-        // Deselect
-        seatDiv.classList.remove('selected');
-        seatDiv.classList.add('available');
-        selectedSeats = selectedSeats.filter(s => s.id !== seatId);
+    const info = document.getElementById('zoneSelectionInfo');
+    if (ticketCount > 1) {
+        info.innerHTML = `
+            <p style="color: var(--accent-color); font-weight: 600;">
+                ℹ️ Система автоматически разместит всех ${ticketCount} зрителей в один ряд рядом друг с другом
+            </p>
+        `;
     } else {
-        // Check if we can select more seats
-        if (selectedSeats.length >= ticketCount) {
-            const errorDiv = document.getElementById('bookingError');
-            errorDiv.textContent = `Вы можете выбрать максимум ${ticketCount} мест. Измените количество билетов или отмените выбор других мест.`;
-            errorDiv.classList.add('show');
-            setTimeout(() => errorDiv.classList.remove('show'), 5000);
-            return;
-        }
-        
-        // Select
-        seatDiv.classList.remove('available');
-        seatDiv.classList.add('selected');
-        selectedSeats.push({ id: seatId, row, seat });
+        info.innerHTML = `
+            <p style="color: var(--text-light);">
+                ℹ️ Конкретное место будет назначено системой при выдаче билета
+            </p>
+        `;
     }
-    
-    updateSelectedSeatsDisplay();
-    checkFormCompletion();
-}
-
-function updateSelectedSeatsDisplay() {
-    document.getElementById('selectedSeatsCount').textContent = selectedSeats.length;
-    
-    if (selectedSeats.length > 0) {
-        const seatsList = selectedSeats
-            .sort((a, b) => a.row - b.row || a.seat - b.seat)
-            .map(s => `Ряд ${s.row}, Место ${s.seat}`)
-            .join('; ');
-        document.getElementById('selectedSeatsList').textContent = seatsList;
-    } else {
-        document.getElementById('selectedSeatsList').textContent = '-';
-    }
+    info.style.display = 'block';
 }
 
 function updateTotalPrice() {
@@ -296,16 +271,29 @@ function setupEventListeners() {
     document.getElementById('ticketCount').addEventListener('change', function() {
         const newCount = parseInt(this.value);
         
-        // If selected seats exceed new count, clear selection
-        if (selectedSeats.length > newCount) {
-            const errorDiv = document.getElementById('bookingError');
-            errorDiv.textContent = `Количество выбранных мест (${selectedSeats.length}) превышает новое количество билетов. Выбор мест сброшен.`;
-            errorDiv.classList.add('show');
-            setTimeout(() => errorDiv.classList.remove('show'), 5000);
-            clearSeatSelection();
+        // Update Fan ID fields
+        if (currentMatch.fanIdRequired) {
+            updateFanIdFields(newCount);
+        }
+        
+        // If zone is selected, check if it can accommodate the new count
+        if (selectedZone) {
+            const maxConsecutiveSeats = selectedZone.seatsPerRow;
+            if (newCount > maxConsecutiveSeats) {
+                const errorDiv = document.getElementById('bookingError');
+                errorDiv.textContent = `В выбранной зоне "${selectedZone.name}" максимум ${maxConsecutiveSeats} мест в ряду. Выберите другую зону или уменьшите количество билетов.`;
+                errorDiv.classList.add('show');
+                setTimeout(() => errorDiv.classList.remove('show'), 5000);
+                selectedZone = null;
+                document.querySelectorAll('.stadium-sector').forEach(s => s.classList.remove('selected'));
+                document.getElementById('zoneSelectionInfo').style.display = 'none';
+            } else {
+                showZoneSelectionInfo(selectedZone, newCount);
+            }
         }
         
         updateTotalPrice();
+        checkFormCompletion();
     });
     
     // Price limit change
@@ -411,15 +399,6 @@ function setupEventListeners() {
     bookingForm.addEventListener('input', checkFormCompletion);
 }
 
-function clearSeatSelection() {
-    selectedSeats = [];
-    document.querySelectorAll('.seat.selected').forEach(seat => {
-        seat.classList.remove('selected');
-        seat.classList.add('available');
-    });
-    updateSelectedSeatsDisplay();
-}
-
 function checkFormCompletion() {
     const ticketCount = parseInt(document.getElementById('ticketCount').value);
     const priceLimit = document.getElementById('priceLimit').value;
@@ -429,17 +408,16 @@ function checkFormCompletion() {
     
     let fanIdValid = true;
     if (currentMatch.fanIdRequired) {
-        const fanId = document.getElementById('fanId').value;
-        fanIdValid = fanId.trim() !== '';
+        // Check if all Fan IDs are filled
+        fanIdValid = ticketFanIds.every(fanId => fanId.trim() !== '');
     }
     
     const submitBtn = document.getElementById('submitBooking');
     
-    // Check if sector is selected and seats are selected
-    const sectorSelected = selectedSector !== null;
-    const seatsSelected = selectedSeats.length === ticketCount;
+    // Check if zone is selected
+    const zoneSelected = selectedZone !== null;
     
-    if (sectorSelected && seatsSelected && priceLimit && fullName && email && ofertaAccept && selectedCard && fanIdValid) {
+    if (zoneSelected && priceLimit && fullName && email && ofertaAccept && selectedCard && fanIdValid) {
         submitBtn.disabled = false;
     } else {
         submitBtn.disabled = true;
@@ -455,17 +433,21 @@ function handleBookingSubmit(e) {
     
     const ticketCount = parseInt(document.getElementById('ticketCount').value);
     
-    // Validate seat selection
-    if (!selectedSector) {
-        errorDiv.textContent = 'Выберите сектор на карте стадиона';
+    // Validate zone selection
+    if (!selectedZone) {
+        errorDiv.textContent = 'Выберите зону на карте стадиона';
         errorDiv.classList.add('show');
         return;
     }
     
-    if (selectedSeats.length !== ticketCount) {
-        errorDiv.textContent = `Выберите ${ticketCount} мест на карте`;
-        errorDiv.classList.add('show');
-        return;
+    // Validate Fan IDs if required
+    if (currentMatch.fanIdRequired) {
+        const allFanIdsFilled = ticketFanIds.every(fanId => fanId.trim() !== '');
+        if (!allFanIdsFilled) {
+            errorDiv.textContent = 'Необходимо указать Fan ID для каждого билета';
+            errorDiv.classList.add('show');
+            return;
+        }
     }
     
     // Collect form data
@@ -477,43 +459,38 @@ function handleBookingSubmit(e) {
         date: currentMatch.date,
         time: currentMatch.time,
         stadium: currentMatch.stadium,
-        sector: selectedSector.name,
-        sectorId: selectedSector.id,
-        seats: selectedSeats.map(s => `Ряд ${s.row}, Место ${s.seat}`).join('; '),
-        seatDetails: selectedSeats,
+        zone: selectedZone.name,
+        zoneId: selectedZone.id,
         ticketCount: ticketCount,
         priceLimit: parseInt(document.getElementById('priceLimit').value),
         fullName: document.getElementById('fullName').value,
         email: document.getElementById('email').value,
-        fanId: currentMatch.fanIdRequired ? document.getElementById('fanId').value : null,
-        cardId: selectedCard
+        fanIds: currentMatch.fanIdRequired ? ticketFanIds : null,
+        cardId: selectedCard,
+        seatingPreference: ticketCount > 1 ? 'consecutive' : 'any'
     };
-    
-    // Validate Fan ID if required
-    if (currentMatch.fanIdRequired && !bookingData.fanId) {
-        errorDiv.textContent = 'Для данного матча требуется Fan ID';
-        errorDiv.classList.add('show');
-        return;
-    }
     
     // Create preorder
     const result = PreorderManager.create(bookingData);
     
     if (result.success) {
-        // Update user's Fan ID if provided
-        if (bookingData.fanId && bookingData.fanId !== user.fanId) {
-            Auth.updateProfile({ fanId: bookingData.fanId });
+        // Update user's Fan ID if provided (use first Fan ID)
+        if (bookingData.fanIds && bookingData.fanIds[0] && bookingData.fanIds[0] !== user.fanId) {
+            Auth.updateProfile({ fanId: bookingData.fanIds[0] });
         }
         
         // Show success and redirect
         const successDiv = document.createElement('div');
         successDiv.className = 'success-message show';
-        successDiv.innerHTML = `<strong>Предзаказ успешно оформлен!</strong><br><br>Сектор: ${bookingData.sector}<br>Места: ${bookingData.seats}<br><br>Вы получите уведомление на email при выдаче билета.`;
+        const seatingInfo = ticketCount > 1 
+            ? `<br>Все ${ticketCount} билета будут размещены в один ряд рядом друг с другом.`
+            : '';
+        successDiv.innerHTML = `<strong>Предзаказ успешно оформлен!</strong><br><br>Зона: ${bookingData.zone}<br>Количество билетов: ${ticketCount}${seatingInfo}<br><br>Конкретные места будут назначены системой при выдаче билетов.<br>Вы получите уведомление на email.`;
         errorDiv.parentNode.insertBefore(successDiv, errorDiv);
         
         setTimeout(() => {
             window.location.href = 'profile.html';
-        }, 2000);
+        }, 3000);
     } else {
         errorDiv.textContent = 'Ошибка при оформлении предзаказа';
         errorDiv.classList.add('show');
