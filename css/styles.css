@@ -764,19 +764,18 @@ nav a:hover {
 }
 
 .seat-icon.available {
-    background: var(--bg-white);
-    border-color: var(--primary-color);
+    background: #10b981;
+    border-color: #10b981;
 }
 
 .seat-icon.selected {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
+    background: #3b82f6;
+    border-color: #3b82f6;
 }
 
 .seat-icon.occupied {
-    background: var(--text-light);
-    border-color: var(--text-light);
-    opacity: 0.5;
+    background: #ef4444;
+    border-color: #ef4444;
 }
 
 .brush-selector {
@@ -893,28 +892,27 @@ nav a:hover {
 }
 
 .seat.available {
-    background: var(--bg-white);
-    border-color: var(--primary-color);
-    color: var(--text-dark);
+    background: #10b981;
+    border-color: #10b981;
+    color: white;
 }
 
 .seat.available:hover {
-    background: #ECFDF5;
+    background: #059669;
     transform: scale(1.1);
 }
 
 .seat.selected {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
+    background: #3b82f6;
+    border-color: #3b82f6;
     color: white;
     transform: scale(1.1);
 }
 
 .seat.occupied {
-    background: var(--text-light);
-    border-color: var(--text-light);
+    background: #ef4444;
+    border-color: #ef4444;
     color: white;
-    opacity: 0.5;
     cursor: not-allowed;
 }
 
