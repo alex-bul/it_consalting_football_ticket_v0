@@ -1,11 +1,13 @@
-// Booking page functionality with zone selection for preorders
+// Booking page functionality with zone selection using Fabric.js
 let currentMatch = null;
 let selectedCard = null;
 let selectedSector = null;
 let preferredSeats = []; // Array to store preferred seating zone (can be many seats)
 let ticketFanIds = []; // Array to store Fan ID for each ticket
-let isSelecting = false; // For brush painting
 let brushSize = 1; // Brush size (1x1, 3x3, 5x5, etc.)
+let canvas = null; // Fabric.js canvas
+let seatObjects = {}; // Store seat objects by ID for quick access
+let isDrawing = false; // Track if user is drawing
 
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is logged in
@@ -126,12 +128,6 @@ function createStadiumVisualization() {
     container.innerHTML = '';
     
     // Create 3x3 grid layout with field in center
-    // All 8 positions around the field filled with sectors
-    // Grid positions (row, col):
-    // (1,1) A    (1,2) B    (1,3) VIP
-    // (2,1) D    (2,2) FIELD (2,3) E
-    // (3,1) C    (3,2) F    (3,3) G
-    
     const sectorPositions = [
         { id: 'A', row: 1, col: 1 },
         { id: 'B', row: 1, col: 2 },
@@ -182,118 +178,155 @@ function selectZone(sector) {
     // Show seat map for zone selection
     displaySeatMap(sector);
     
-    // Initialize brush size selector
-    initializeBrushSelector();
-    
     updateTotalPrice();
     checkFormCompletion();
 }
 
 function displaySeatMap(sector) {
     const container = document.getElementById('seatMapContainer');
-    const seatGrid = document.getElementById('seatGrid');
     const currentSectorName = document.getElementById('currentSectorName');
     
     // Show container
     container.style.display = 'block';
     currentSectorName.textContent = sector.name;
     
-    // Clear previous seats
-    seatGrid.innerHTML = '';
-    
-    // Generate seat map
-    for (let row = 1; row <= sector.rows; row++) {
-        const rowDiv = document.createElement('div');
-        rowDiv.className = 'seat-row';
-        
-        const rowLabel = document.createElement('div');
-        rowLabel.className = 'row-label';
-        rowLabel.textContent = `Ряд ${row}`;
-        rowDiv.appendChild(rowLabel);
-        
-        const seatsContainer = document.createElement('div');
-        seatsContainer.className = 'seats-container';
-        
-        for (let seat = 1; seat <= sector.seatsPerRow; seat++) {
-            const seatDiv = document.createElement('div');
-            seatDiv.className = 'seat';
-            seatDiv.dataset.row = row;
-            seatDiv.dataset.seat = seat;
-            seatDiv.textContent = seat;
-            
-            // Randomly mark some seats as occupied (for demo purposes)
-            const isOccupied = Math.random() < 0.3; // 30% occupied
-            if (isOccupied) {
-                seatDiv.classList.add('occupied');
-            } else {
-                seatDiv.classList.add('available');
-            }
-            
-            // Add event listeners for all seats (occupied will be ignored in logic)
-            seatDiv.addEventListener('mousedown', (e) => startSelection(e, row, seat));
-            seatDiv.addEventListener('mouseenter', (e) => continueSelection(e, row, seat));
-            seatDiv.addEventListener('mouseup', stopSelection);
-            
-            seatsContainer.appendChild(seatDiv);
-        }
-        
-        rowDiv.appendChild(seatsContainer);
-        seatGrid.appendChild(rowDiv);
-    }
-    
-    // Add global mouseup listener
-    document.addEventListener('mouseup', stopSelection);
+    // Initialize Fabric.js canvas
+    initializeFabricCanvas(sector);
     
     updatePreferredZoneDisplay();
 }
 
-function initializeBrushSelector() {
-    const container = document.getElementById('seatMapContainer');
+function initializeFabricCanvas(sector) {
+    const canvasElement = document.getElementById('seatCanvas');
     
-    // Check if brush selector already exists
-    if (document.getElementById('brushSelector')) return;
-    
-    const brushDiv = document.createElement('div');
-    brushDiv.id = 'brushSelector';
-    brushDiv.className = 'brush-selector';
-    brushDiv.innerHTML = `
-        <label><strong>Размер кисточки:</strong></label>
-        <button class="brush-btn active" data-size="1">1x1</button>
-        <button class="brush-btn" data-size="3">3x3</button>
-        <button class="brush-btn" data-size="5">5x5</button>
-        <button class="brush-btn" data-size="7">7x7</button>
-    `;
-    
-    // Insert before seat grid
-    const seatGrid = document.getElementById('seatGrid');
-    container.insertBefore(brushDiv, seatGrid);
-    
-    // Add event listeners to brush buttons
-    document.querySelectorAll('.brush-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.brush-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            brushSize = parseInt(this.dataset.size);
-        });
-    });
-}
-
-function startSelection(e, row, seat) {
-    e.preventDefault();
-    e.stopPropagation();
-    isSelecting = true;
-    paintWithBrush(row, seat);
-}
-
-function continueSelection(e, row, seat) {
-    if (isSelecting) {
-        e.preventDefault();
-        paintWithBrush(row, seat);
+    // Clear existing canvas if any
+    if (canvas) {
+        canvas.dispose();
     }
+    
+    seatObjects = {};
+    
+    // Calculate canvas dimensions
+    const seatSize = 30; // Size of each seat
+    const seatGap = 5; // Gap between seats
+    const rowLabelWidth = 60; // Width for row labels
+    const canvasWidth = rowLabelWidth + (sector.seatsPerRow * (seatSize + seatGap)) + 20;
+    const canvasHeight = (sector.rows * (seatSize + seatGap)) + 40;
+    
+    // Set canvas size
+    canvasElement.width = canvasWidth;
+    canvasElement.height = canvasHeight;
+    
+    // Initialize Fabric canvas
+    canvas = new fabric.Canvas('seatCanvas', {
+        selection: false,
+        backgroundColor: '#f8f9fa'
+    });
+    
+    canvas.setWidth(canvasWidth);
+    canvas.setHeight(canvasHeight);
+    
+    // Generate seats
+    for (let row = 1; row <= sector.rows; row++) {
+        // Add row label
+        const rowLabel = new fabric.Text(`Ряд ${row}`, {
+            left: 10,
+            top: 20 + (row - 1) * (seatSize + seatGap) + seatSize / 3,
+            fontSize: 14,
+            fontFamily: 'Arial',
+            fill: '#333',
+            selectable: false
+        });
+        canvas.add(rowLabel);
+        
+        for (let seat = 1; seat <= sector.seatsPerRow; seat++) {
+            const seatId = `${row}-${seat}`;
+            const x = rowLabelWidth + (seat - 1) * (seatSize + seatGap);
+            const y = 20 + (row - 1) * (seatSize + seatGap);
+            
+            // Randomly mark some seats as occupied (for demo purposes)
+            const isOccupied = Math.random() < 0.3; // 30% occupied
+            
+            // Create seat rectangle
+            const seatRect = new fabric.Rect({
+                left: x,
+                top: y,
+                width: seatSize,
+                height: seatSize,
+                fill: isOccupied ? '#e74c3c' : '#2ecc71',
+                stroke: '#333',
+                strokeWidth: 1,
+                rx: 3,
+                ry: 3,
+                selectable: false,
+                hoverCursor: isOccupied ? 'not-allowed' : 'pointer'
+            });
+            
+            // Create seat number text
+            const seatText = new fabric.Text(seat.toString(), {
+                left: x + seatSize / 2,
+                top: y + seatSize / 2,
+                fontSize: 12,
+                fontFamily: 'Arial',
+                fill: '#fff',
+                originX: 'center',
+                originY: 'center',
+                selectable: false
+            });
+            
+            // Group seat and text
+            const seatGroup = new fabric.Group([seatRect, seatText], {
+                selectable: false,
+                hoverCursor: isOccupied ? 'not-allowed' : 'pointer'
+            });
+            
+            // Store seat data
+            seatGroup.seatData = {
+                id: seatId,
+                row: row,
+                seat: seat,
+                isOccupied: isOccupied,
+                isSelected: false,
+                rect: seatRect
+            };
+            
+            seatObjects[seatId] = seatGroup;
+            canvas.add(seatGroup);
+        }
+    }
+    
+    // Add mouse event handlers for brush painting
+    canvas.on('mouse:down', function(options) {
+        isDrawing = true;
+        handleCanvasClick(options);
+    });
+    
+    canvas.on('mouse:move', function(options) {
+        if (isDrawing) {
+            handleCanvasClick(options);
+        }
+    });
+    
+    canvas.on('mouse:up', function() {
+        isDrawing = false;
+    });
+    
+    canvas.renderAll();
 }
 
-function stopSelection(e) {
-    isSelecting = false;
+function handleCanvasClick(options) {
+    const pointer = canvas.getPointer(options.e);
+    
+    // Find which seat was clicked
+    const objects = canvas.getObjects();
+    for (let obj of objects) {
+        if (obj.seatData && obj.containsPoint(pointer)) {
+            if (!obj.seatData.isOccupied) {
+                paintWithBrush(obj.seatData.row, obj.seatData.seat);
+            }
+            break;
+        }
+    }
 }
 
 function paintWithBrush(centerRow, centerSeat) {
@@ -301,70 +334,40 @@ function paintWithBrush(centerRow, centerSeat) {
     
     for (let r = centerRow - radius; r <= centerRow + radius; r++) {
         for (let s = centerSeat - radius; s <= centerSeat + radius; s++) {
-            const seatElement = document.querySelector(`[data-row="${r}"][data-seat="${s}"]`);
-            if (seatElement && seatElement.classList.contains('available') && !seatElement.classList.contains('occupied')) {
-                addSeatToZone(r, s);
+            const seatId = `${r}-${s}`;
+            const seatObj = seatObjects[seatId];
+            
+            if (seatObj && !seatObj.seatData.isOccupied && !seatObj.seatData.isSelected) {
+                // Mark as selected
+                seatObj.seatData.isSelected = true;
+                seatObj.seatData.rect.set('fill', '#3498db');
+                
+                // Add to preferred seats
+                preferredSeats.push({
+                    id: seatId,
+                    row: r,
+                    seat: s
+                });
             }
         }
     }
     
+    canvas.renderAll();
     updatePreferredZoneDisplay();
     checkFormCompletion();
 }
 
 function clearAllSelections() {
     preferredSeats.forEach(s => {
-        const seatElement = document.querySelector(`[data-row="${s.row}"][data-seat="${s.seat}"]`);
-        if (seatElement) {
-            seatElement.classList.remove('selected');
+        const seatObj = seatObjects[s.id];
+        if (seatObj && !seatObj.seatData.isOccupied) {
+            seatObj.seatData.isSelected = false;
+            seatObj.seatData.rect.set('fill', '#2ecc71');
         }
     });
+    
     preferredSeats = [];
-}
-
-function addSeatToZone(row, seat) {
-    const seatId = `${row}-${seat}`;
-    const seatElement = document.querySelector(`[data-row="${row}"][data-seat="${seat}"]`);
-    
-    if (!seatElement || seatElement.classList.contains('occupied')) return;
-    
-    // Check if seat is already in preferred zone
-    const seatIndex = preferredSeats.findIndex(s => s.id === seatId);
-    
-    if (seatIndex === -1) {
-        // Add to preferred zone
-        preferredSeats.push({
-            id: seatId,
-            row: row,
-            seat: seat
-        });
-        seatElement.classList.add('selected');
-    }
-}
-
-function toggleSeatInZone(row, seat) {
-    const seatId = `${row}-${seat}`;
-    const seatElement = document.querySelector(`[data-row="${row}"][data-seat="${seat}"]`);
-    
-    if (!seatElement || seatElement.classList.contains('occupied')) return;
-    
-    // Check if seat is already in preferred zone
-    const seatIndex = preferredSeats.findIndex(s => s.id === seatId);
-    
-    if (seatIndex > -1) {
-        // Remove from preferred zone (toggle off)
-        preferredSeats.splice(seatIndex, 1);
-        seatElement.classList.remove('selected');
-    } else {
-        // Add to preferred zone (toggle on)
-        preferredSeats.push({
-            id: seatId,
-            row: row,
-            seat: seat
-        });
-        seatElement.classList.add('selected');
-    }
-    
+    canvas.renderAll();
     updatePreferredZoneDisplay();
     checkFormCompletion();
 }
@@ -441,6 +444,18 @@ function selectCard(cardId) {
 }
 
 function setupEventListeners() {
+    // Brush size selector
+    document.querySelectorAll('.brush-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.brush-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            brushSize = parseInt(this.dataset.size);
+        });
+    });
+    
+    // Clear selection button
+    document.getElementById('clearSelectionBtn').addEventListener('click', clearAllSelections);
+    
     // Ticket count change
     document.getElementById('ticketCount').addEventListener('change', function() {
         const newCount = parseInt(this.value);

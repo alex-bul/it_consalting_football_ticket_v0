@@ -810,6 +810,24 @@ nav a:hover {
     color: white;
 }
 
+/* Canvas container for Fabric.js seat selection */
+.canvas-container {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: var(--bg-light);
+    border-radius: 8px;
+    overflow: auto;
+    max-height: 600px;
+}
+
+#seatCanvas {
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: white;
+    cursor: crosshair;
+}
+
+/* Legacy seat grid styles (kept for compatibility) */
 .seat-grid {
     max-height: 500px;
     overflow-y: auto;

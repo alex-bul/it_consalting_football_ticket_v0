@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест выбора мест с Fabric.js</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f9fafb;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #00A651;
+            margin-bottom: 10px;
+        }
+
+        .info {
+            color: #6B7280;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #FEF3C7;
+            border-radius: 8px;
+            border-left: 4px solid #F59E0B;
+        }
+
+        .brush-selector {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .brush-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid #E5E7EB;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .brush-btn:hover {
+            border-color: #00A651;
+            background: #ECFDF5;
+        }
+
+        .brush-btn.active {
+            border-color: #00A651;
+            background: #00A651;
+            color: white;
+        }
+
+        .clear-btn {
+            padding: 0.5rem 1.5rem;
+            background: #DC2626;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        .clear-btn:hover {
+            background: #B91C1C;
+        }
+
+        .legend {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-box {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 2px solid #333;
+        }
+
+        .canvas-container {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            overflow: auto;
+            max-height: 600px;
+        }
+
+        #seatCanvas {
+            border: 2px solid #E5E7EB;
+            border-radius: 8px;
+            background: white;
+            cursor: crosshair;
+        }
+
+        .summary {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #ECFDF5;
+            border-radius: 8px;
+            border-left: 4px solid #00A651;
+        }
+
+        .summary h3 {
+            color: #00A651;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary p {
+            margin: 0.25rem 0;
+            color: #1F2937;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖌️ Выбор мест с помощью кисточки (Fabric.js)</h1>
+        <p style="color: #6B7280; margin-bottom: 20px;">Демонстрация интерактивного выбора мест на стадионе</p>
+
+        <div class="info">
+            <strong>💡 Как использовать:</strong><br>
+            1. Выберите размер кисточки (1x1, 3x3, 5x5 или 7x7)<br>
+            2. Зажмите кнопку мыши и "закрашивайте" места, которые вам нравятся<br>
+            3. Красные места заняты и не могут быть выбраны<br>
+            4. Синие места - ваш выбор
+        </div>
+
+        <div class="brush-selector">
+            <label><strong>Размер кисточки:</strong></label>
+            <button class="brush-btn active" data-size="1">1x1</button>
+            <button class="brush-btn" data-size="3">3x3</button>
+            <button class="brush-btn" data-size="5">5x5</button>
+            <button class="brush-btn" data-size="7">7x7</button>
+            <button class="clear-btn" id="clearBtn">Очистить выбор</button>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box" style="background: #2ecc71;"></div>
+                <span>Доступно</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #3498db;"></div>
+                <span>Выбрано</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box" style="background: #e74c3c;"></div>
+                <span>Занято</span>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="seatCanvas"></canvas>
+        </div>
+
+        <div class="summary">
+            <h3>📊 Выбранные места</h3>
+            <p><strong>Количество:</strong> <span id="seatCount">0</span></p>
+            <p><strong>Места:</strong> <span id="seatList">Не выбраны</span></p>
+        </div>
+    </div>
+
+    <script>
+        let canvas;
+        let seatObjects = {};
+        let preferredSeats = [];
+        let brushSize = 1;
+        let isDrawing = false;
+
+        // Sector configuration
+        const sector = {
+            rows: 15,
+            seatsPerRow: 20
+        };
+
+        // Initialize
+        initializeFabricCanvas();
+        setupEventListeners();
+
+        function initializeFabricCanvas() {
+            const canvasElement = document.getElementById('seatCanvas');
+            
+            // Calculate canvas dimensions
+            const seatSize = 30;
+            const seatGap = 5;
+            const rowLabelWidth = 60;
+            const canvasWidth = rowLabelWidth + (sector.seatsPerRow * (seatSize + seatGap)) + 20;
+            const canvasHeight = (sector.rows * (seatSize + seatGap)) + 40;
+            
+            canvasElement.width = canvasWidth;
+            canvasElement.height = canvasHeight;
+            
+            // Initialize Fabric canvas
+            canvas = new fabric.Canvas('seatCanvas', {
+                selection: false,
+                backgroundColor: '#f8f9fa'
+            });
+            
+            canvas.setWidth(canvasWidth);
+            canvas.setHeight(canvasHeight);
+            
+            // Generate seats
+            for (let row = 1; row <= sector.rows; row++) {
+                // Add row label
+                const rowLabel = new fabric.Text(`Ряд ${row}`, {
+                    left: 10,
+                    top: 20 + (row - 1) * (seatSize + seatGap) + seatSize / 3,
+                    fontSize: 14,
+                    fontFamily: 'Arial',
+                    fill: '#333',
+                    selectable: false
+                });
+                canvas.add(rowLabel);
+                
+                for (let seat = 1; seat <= sector.seatsPerRow; seat++) {
+                    const seatId = `${row}-${seat}`;
+                    const x = rowLabelWidth + (seat - 1) * (seatSize + seatGap);
+                    const y = 20 + (row - 1) * (seatSize + seatGap);
+                    
+                    // Randomly mark some seats as occupied
+                    const isOccupied = Math.random() < 0.3;
+                    
+                    // Create seat rectangle
+                    const seatRect = new fabric.Rect({
+                        left: x,
+                        top: y,
+                        width: seatSize,
+                        height: seatSize,
+                        fill: isOccupied ? '#e74c3c' : '#2ecc71',
+                        stroke: '#333',
+                        strokeWidth: 1,
+                        rx: 3,
+                        ry: 3,
+                        selectable: false,
+                        hoverCursor: isOccupied ? 'not-allowed' : 'pointer'
+                    });
+                    
+                    // Create seat number text
+                    const seatText = new fabric.Text(seat.toString(), {
+                        left: x + seatSize / 2,
+                        top: y + seatSize / 2,
+                        fontSize: 12,
+                        fontFamily: 'Arial',
+                        fill: '#fff',
+                        originX: 'center',
+                        originY: 'center',
+                        selectable: false
+                    });
+                    
+                    // Group seat and text
+                    const seatGroup = new fabric.Group([seatRect, seatText], {
+                        selectable: false,
+                        hoverCursor: isOccupied ? 'not-allowed' : 'pointer'
+                    });
+                    
+                    // Store seat data
+                    seatGroup.seatData = {
+                        id: seatId,
+                        row: row,
+                        seat: seat,
+                        isOccupied: isOccupied,
+                        isSelected: false,
+                        rect: seatRect
+                    };
+                    
+                    seatObjects[seatId] = seatGroup;
+                    canvas.add(seatGroup);
+                }
+            }
+            
+            // Add mouse event handlers
+            canvas.on('mouse:down', function(options) {
+                isDrawing = true;
+                handleCanvasClick(options);
+            });
+            
+            canvas.on('mouse:move', function(options) {
+                if (isDrawing) {
+                    handleCanvasClick(options);
+                }
+            });
+            
+            canvas.on('mouse:up', function() {
+                isDrawing = false;
+            });
+            
+            canvas.renderAll();
+        }
+
+        function handleCanvasClick(options) {
+            const pointer = canvas.getPointer(options.e);
+            
+            // Find which seat was clicked
+            const objects = canvas.getObjects();
+            for (let obj of objects) {
+                if (obj.seatData && obj.containsPoint(pointer)) {
+                    if (!obj.seatData.isOccupied) {
+                        paintWithBrush(obj.seatData.row, obj.seatData.seat);
+                    }
+                    break;
+                }
+            }
+        }
+
+        function paintWithBrush(centerRow, centerSeat) {
+            const radius = Math.floor(brushSize / 2);
+            
+            for (let r = centerRow - radius; r <= centerRow + radius; r++) {
+                for (let s = centerSeat - radius; s <= centerSeat + radius; s++) {
+                    const seatId = `${r}-${s}`;
+                    const seatObj = seatObjects[seatId];
+                    
+                    if (seatObj && !seatObj.seatData.isOccupied && !seatObj.seatData.isSelected) {
+                        seatObj.seatData.isSelected = true;
+                        seatObj.seatData.rect.set('fill', '#3498db');
+                        
+                        preferredSeats.push({
+                            id: seatId,
+                            row: r,
+                            seat: s
+                        });
+                    }
+                }
+            }
+            
+            canvas.renderAll();
+            updateSummary();
+        }
+
+        function clearAllSelections() {
+            preferredSeats.forEach(s => {
+                const seatObj = seatObjects[s.id];
+                if (seatObj && !seatObj.seatData.isOccupied) {
+                    seatObj.seatData.isSelected = false;
+                    seatObj.seatData.rect.set('fill', '#2ecc71');
+                }
+            });
+            
+            preferredSeats = [];
+            canvas.renderAll();
+            updateSummary();
+        }
+
+        function updateSummary() {
+            document.getElementById('seatCount').textContent = preferredSeats.length;
+            
+            if (preferredSeats.length > 0) {
+                const rowGroups = {};
+                preferredSeats.forEach(s => {
+                    if (!rowGroups[s.row]) rowGroups[s.row] = [];
+                    rowGroups[s.row].push(s.seat);
+                });
+                
+                const displayText = Object.keys(rowGroups)
+                    .sort((a, b) => a - b)
+                    .map(row => {
+                        const seats = rowGroups[row].sort((a, b) => a - b);
+                        return `Ряд ${row}: места ${seats.join(', ')}`;
+                    })
+                    .join('; ');
+                
+                document.getElementById('seatList').textContent = displayText;
+            } else {
+                document.getElementById('seatList').textContent = 'Не выбраны';
+            }
+        }
+
+        function setupEventListeners() {
+            // Brush size buttons
+            document.querySelectorAll('.brush-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.brush-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    brushSize = parseInt(this.dataset.size);
+                });
+            });
+            
+            // Clear button
+            document.getElementById('clearBtn').addEventListener('click', clearAllSelections);
+        }
+    </script>
+</body>
+</html>
