@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оформление предзаказа</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1>⚽ Предзаказ билетов</h1>
+                <nav>
+                    <a href="index.html">Матчи</a>
+                    <a href="profile.html" id="profileLink">Профиль</a>
+                    <a href="login.html" id="authLink">Войти</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="booking-container">
+            <h2>Оформление предзаказа</h2>
+            <div id="matchInfo" class="match-info-card"></div>
+
+            <form id="bookingForm" class="booking-form">
+                <div class="form-section">
+                    <h3>1. Выбор мест</h3>
+                    <div id="stadiumMap" class="stadium-map"></div>
+                    
+                    <div class="form-group">
+                        <label for="sectorSelect">Сектор</label>
+                        <select id="sectorSelect" required>
+                            <option value="">Выберите сектор</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rowInput">Ряд (или диапазон, например: 5-10)</label>
+                        <input type="text" id="rowInput" placeholder="Например: 5 или 5-10" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="seatsInput">Места (через запятую или диапазон)</label>
+                        <input type="text" id="seatsInput" placeholder="Например: 1,2,3 или 1-5" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ticketCount">Количество билетов</label>
+                        <input type="number" id="ticketCount" min="1" max="4" value="1" required>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>2. Лимит цены</h3>
+                    <div class="price-info">
+                        <p>Базовая цена: <strong id="basePrice">-</strong> ₽</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="priceLimit">Максимальная цена за один билет (₽)</label>
+                        <input type="number" id="priceLimit" min="0" step="100" required>
+                        <span class="field-hint">Укажите максимальную сумму, которую готовы заплатить</span>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>3. Личные данные</h3>
+                    <div class="form-group">
+                        <label for="fullName">ФИО</label>
+                        <input type="text" id="fullName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    <div id="fanIdSection" class="form-group" style="display: none;">
+                        <label for="fanId">Fan ID</label>
+                        <input type="text" id="fanId" placeholder="Введите номер Fan ID">
+                        <span class="field-hint warning">⚠️ Для посещения данного матча требуется Fan ID</span>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>4. Условия оферты</h3>
+                    <div class="oferta-box">
+                        <p>Ознакомьтесь с условиями оферты о невозвратной комиссии сервиса.</p>
+                        <a href="#" id="ofertaLink" class="link">Читать условия оферты</a>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label>
+                            <input type="checkbox" id="ofertaAccept" required>
+                            Я ознакомился и принимаю условия оферты
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>5. Платежные данные</h3>
+                    <div id="savedCards" class="saved-cards"></div>
+                    <button type="button" id="addCardBtn" class="btn btn-secondary">Привязать карту</button>
+                </div>
+
+                <div id="bookingError" class="error-message"></div>
+                <button type="submit" class="btn btn-primary btn-large" id="submitBooking" disabled>Оформить предзаказ</button>
+            </form>
+        </div>
+    </main>
+
+    <!-- Oferta Modal -->
+    <div id="ofertaModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Условия оферты</h2>
+            <div class="oferta-content">
+                <p><strong>Условия предоставления услуг предзаказа билетов</strong></p>
+                <p>1. Сервис предоставляет возможность предзаказа билетов на футбольные матчи.</p>
+                <p>2. При успешной покупке билета комиссия сервиса (разница между базовой ценой и вашим лимитом) является невозвратной.</p>
+                <p>3. При возврате билета возвращается только базовая стоимость билета.</p>
+                <p>4. Оплата происходит автоматически при выдаче билета.</p>
+                <p>5. Предзаказ можно отменить до начала резервирования билетов (за 1 час до старта продаж).</p>
+                <p>6. Система распределяет билеты по принципу аукциона: приоритет получает заявка с наибольшим лимитом цены.</p>
+            </div>
+            <button class="btn btn-primary" id="closeOferta">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Card Modal -->
+    <div id="cardModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Привязка карты</h2>
+            <form id="cardForm">
+                <p class="info-text">Карта будет использована для автоматического списания средств при выдаче билета.</p>
+                <div class="form-group">
+                    <label for="cardNumber">Номер карты</label>
+                    <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cardExpiry">Срок действия</label>
+                        <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardCvc">CVC</label>
+                        <input type="text" id="cardCvc" placeholder="123" maxlength="3" required>
+                    </div>
+                </div>
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="autoPaymentConsent" required>
+                        Согласен на автоматическое списание средств при выдаче билетов
+                    </label>
+                </div>
+                <div id="cardError" class="error-message"></div>
+                <button type="submit" class="btn btn-primary">Привязать карту</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Сервис предзаказа билетов на футбольные матчи</p>
+        </div>
+    </footer>
+
+    <script src="../js/app.js"></script>
+    <script src="../js/booking.js"></script>
+</body>
+</html>

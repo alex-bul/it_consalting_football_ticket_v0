@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1>⚽ Предзаказ билетов</h1>
+                <nav>
+                    <a href="index.html">Матчи</a>
+                    <a href="profile.html">Профиль</a>
+                    <a href="login.html" id="authLink">Войти</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="profile-container">
+            <h2>Личный кабинет</h2>
+            
+            <div class="profile-section">
+                <h3>Личные данные</h3>
+                <div id="profileInfo" class="profile-info">
+                    <!-- Profile info will be loaded here -->
+                </div>
+                <button id="editProfileBtn" class="btn btn-secondary">Редактировать</button>
+            </div>
+
+            <div class="profile-section">
+                <h3>Fan ID</h3>
+                <div id="fanIdInfo" class="fan-id-info">
+                    <!-- Fan ID info will be loaded here -->
+                </div>
+                <form id="fanIdForm" style="display: none;">
+                    <div class="form-group">
+                        <label for="fanIdInput">Номер Fan ID</label>
+                        <input type="text" id="fanIdInput" placeholder="Введите номер Fan ID">
+                        <span class="field-hint">Fan ID требуется для матчей РПЛ</span>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                    <button type="button" id="cancelFanId" class="btn btn-secondary">Отмена</button>
+                </form>
+                <button id="addFanIdBtn" class="btn btn-secondary">Добавить Fan ID</button>
+            </div>
+
+            <div class="profile-section">
+                <h3>Мои предзаказы</h3>
+                <div id="preordersList" class="preorders-list">
+                    <!-- Preorders will be loaded here -->
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <h3>Привязанные карты</h3>
+                <div id="cardsList" class="cards-list">
+                    <!-- Cards will be loaded here -->
+                </div>
+            </div>
+
+            <button id="logoutBtn" class="btn btn-danger">Выйти</button>
+        </div>
+    </main>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Редактировать профиль</h2>
+            <form id="editProfileForm">
+                <div class="form-group">
+                    <label for="editName">ФИО</label>
+                    <input type="text" id="editName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEmail">Email</label>
+                    <input type="email" id="editEmail" required>
+                </div>
+                <div id="editError" class="error-message"></div>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cancel Preorder Modal -->
+    <div id="cancelModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Отмена предзаказа</h2>
+            <p>Вы уверены, что хотите отменить предзаказ?</p>
+            <div class="modal-actions">
+                <button id="confirmCancel" class="btn btn-danger">Да, отменить</button>
+                <button id="cancelCancelBtn" class="btn btn-secondary">Нет</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Сервис предзаказа билетов на футбольные матчи</p>
+        </div>
+    </footer>
+
+    <script src="../js/app.js"></script>
+    <script src="../js/profile.js"></script>
+</body>
+</html>
