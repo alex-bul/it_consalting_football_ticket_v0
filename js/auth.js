@@ -68,6 +68,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Check if name is required and visible
+        if (nameSection.style.display !== 'none' && !name) {
+            errorDiv.textContent = 'Укажите ваше имя для регистрации';
+            errorDiv.classList.add('show');
+            userNameInput.focus();
+            return;
+        }
+        
         // Verify code
         const result = Auth.verifyCode(currentEmail, code, name);
         
@@ -85,9 +93,9 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (result.needsName) {
             // Show name input for new users
             nameSection.style.display = 'block';
-            userNameInput.required = true;
             errorDiv.textContent = result.error;
             errorDiv.classList.add('show');
+            userNameInput.focus();
         } else {
             errorDiv.textContent = result.error;
             errorDiv.classList.add('show');
@@ -126,6 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
         nameSection.style.display = 'none';
         userNameInput.value = '';
         document.getElementById('codeError').classList.remove('show');
+        document.getElementById('emailError').classList.remove('show');
         emailInput.focus();
     });
     
