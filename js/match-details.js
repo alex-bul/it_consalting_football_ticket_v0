@@ -68,29 +68,12 @@ function displayMatchDetails(match) {
             </div>
         </div>
         
-        <div class="stadium-section">
-            <h3>Схема стадиона и цены</h3>
-            <div class="stadium-map" id="stadiumMap"></div>
-        </div>
-        
         <div style="text-align: center; margin: 2rem 0;">
             <button class="btn btn-primary btn-large" id="bookBtn" style="max-width: 400px;">
                 Оформить предзаказ
             </button>
         </div>
     `;
-    
-    // Display stadium sectors
-    const stadiumMap = document.getElementById('stadiumMap');
-    match.sectors.forEach(sector => {
-        const sectorDiv = document.createElement('div');
-        sectorDiv.className = 'sector';
-        sectorDiv.innerHTML = `
-            <div class="sector-name">${sector.name}</div>
-            <div class="sector-price">от ${sector.price} ₽</div>
-        `;
-        stadiumMap.appendChild(sectorDiv);
-    });
     
     // Book button handler
     document.getElementById('bookBtn').addEventListener('click', function() {
