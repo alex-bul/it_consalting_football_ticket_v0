@@ -79,14 +79,10 @@ const Auth = {
         let user = users.find(u => u.email === email);
         
         if (!user) {
-            // Create new user
-            if (!name || name.trim() === '') {
-                return { success: false, error: 'Укажите ваше имя для регистрации', needsName: true };
-            }
-            
+            // Create new user without requiring name
             user = {
                 id: Date.now().toString(),
-                name: name.trim(),
+                name: name && name.trim() !== '' ? name.trim() : email.split('@')[0],
                 email: email,
                 fanId: null,
                 createdAt: new Date().toISOString()

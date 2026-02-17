@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const code = verificationCodeInput.value.trim();
         const errorDiv = document.getElementById('codeError');
-        const name = userNameInput.value.trim();
         
         errorDiv.classList.remove('show');
         
@@ -68,16 +67,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Check if name is required and visible
-        if (nameSection.style.display !== 'none' && !name) {
-            errorDiv.textContent = 'Укажите ваше имя для регистрации';
-            errorDiv.classList.add('show');
-            userNameInput.focus();
-            return;
-        }
-        
-        // Verify code
-        const result = Auth.verifyCode(currentEmail, code, name);
+        // Verify code without requiring name
+        const result = Auth.verifyCode(currentEmail, code);
         
         if (result.success) {
             // Check if there's a redirect URL
@@ -90,12 +81,6 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 window.location.href = 'profile.html';
             }
-        } else if (result.needsName) {
-            // Show name input for new users
-            nameSection.style.display = 'block';
-            errorDiv.textContent = result.error;
-            errorDiv.classList.add('show');
-            userNameInput.focus();
         } else {
             errorDiv.textContent = result.error;
             errorDiv.classList.add('show');
