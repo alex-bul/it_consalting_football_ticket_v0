@@ -179,10 +179,12 @@ const MATCHES_DATA = [
         sectors: [
             { id: 'A', name: 'Сектор A', price: 2400, rows: 20, seatsPerRow: 30 },
             { id: 'B', name: 'Сектор B', price: 3000, rows: 20, seatsPerRow: 30 },
-            { id: 'C', name: 'Сектор C', price: 3500, rows: 15, seatsPerRow: 25 },
+            { id: 'VIP', name: 'VIP', price: 8000, rows: 5, seatsPerRow: 20 },
             { id: 'D', name: 'Сектор D', price: 2400, rows: 20, seatsPerRow: 30 },
             { id: 'E', name: 'Сектор E', price: 3000, rows: 20, seatsPerRow: 30 },
-            { id: 'VIP', name: 'VIP', price: 8000, rows: 5, seatsPerRow: 20 }
+            { id: 'C', name: 'Сектор C', price: 3500, rows: 15, seatsPerRow: 25 },
+            { id: 'F', name: 'Сектор F', price: 2800, rows: 20, seatsPerRow: 30 },
+            { id: 'G', name: 'Сектор G', price: 2800, rows: 20, seatsPerRow: 30 }
         ]
     },
     {
@@ -207,10 +209,12 @@ const MATCHES_DATA = [
         sectors: [
             { id: 'A', name: 'Сектор A', price: 1800, rows: 20, seatsPerRow: 30 },
             { id: 'B', name: 'Сектор B', price: 2200, rows: 20, seatsPerRow: 30 },
-            { id: 'C', name: 'Сектор C', price: 2800, rows: 15, seatsPerRow: 25 },
+            { id: 'VIP', name: 'VIP', price: 6000, rows: 5, seatsPerRow: 20 },
             { id: 'D', name: 'Сектор D', price: 1800, rows: 20, seatsPerRow: 30 },
             { id: 'E', name: 'Сектор E', price: 2200, rows: 20, seatsPerRow: 30 },
-            { id: 'VIP', name: 'VIP', price: 6000, rows: 5, seatsPerRow: 20 }
+            { id: 'C', name: 'Сектор C', price: 2800, rows: 15, seatsPerRow: 25 },
+            { id: 'F', name: 'Сектор F', price: 2000, rows: 20, seatsPerRow: 30 },
+            { id: 'G', name: 'Сектор G', price: 2000, rows: 20, seatsPerRow: 30 }
         ]
     }
 ];

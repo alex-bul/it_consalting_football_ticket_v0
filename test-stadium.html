@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест карты стадиона - 3x3 сетка (8 секторов)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f9fafb;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #1f2937;
+        }
+
+        .info-text {
+            background: #f3f4f6;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+        }
+
+        /* Stadium Visualization - 3x3 Grid */
+        .stadium-visualization {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 1rem;
+            min-height: 600px;
+        }
+
+        .stadium-field {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: 3px solid white;
+            border-radius: 8px;
+            padding: 3rem 2rem;
+            text-align: center;
+            grid-column: 2;
+            grid-row: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .field-label {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .stadium-sectors {
+            display: contents;
+        }
+
+        .stadium-sector {
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid transparent;
+            border-radius: 8px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .stadium-sector:hover {
+            border-color: #f59e0b;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .stadium-sector.selected {
+            border-color: #00a651;
+            background: #00a651;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .sector-name {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .sector-price {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .stadium-sector.selected .sector-price,
+        .stadium-sector.selected .sector-capacity {
+            color: white;
+        }
+
+        .sector-capacity {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .seat-selection-info {
+            background: #f3f4f6;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .seat-selection-info p {
+            margin: 0.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>1. Выбор зоны на карте стадиона</h1>
+        <p class="info-text">При оформлении предзаказа вы выбираете зону, где хотели бы сидеть. Конкретные места будут назначены системой при выдаче билетов.</p>
+        
+        <!-- Stadium Map Visualization - 3x3 Grid with 8 sectors -->
+        <div class="stadium-visualization">
+            <div class="stadium-sectors">
+                <!-- Row 1: A, B, VIP -->
+                <div class="stadium-sector" style="grid-row: 1; grid-column: 1;" onclick="selectSector(this, 'A')">
+                    <div class="sector-name">Сектор A</div>
+                    <div class="sector-price">от 2400 ₽</div>
+                    <div class="sector-capacity">20x30 мест</div>
+                </div>
+                <div class="stadium-sector" style="grid-row: 1; grid-column: 2;" onclick="selectSector(this, 'B')">
+                    <div class="sector-name">Сектор B</div>
+                    <div class="sector-price">от 3000 ₽</div>
+                    <div class="sector-capacity">20x30 мест</div>
+                </div>
+                <div class="stadium-sector" style="grid-row: 1; grid-column: 3;" onclick="selectSector(this, 'VIP')">
+                    <div class="sector-name">Сектор VIP</div>
+                    <div class="sector-price">от 8000 ₽</div>
+                    <div class="sector-capacity">5x20 мест</div>
+                </div>
+                
+                <!-- Row 2: D, FIELD, E -->
+                <div class="stadium-sector" style="grid-row: 2; grid-column: 1;" onclick="selectSector(this, 'D')">
+                    <div class="sector-name">Сектор D</div>
+                    <div class="sector-price">от 2400 ₽</div>
+                    <div class="sector-capacity">20x30 мест</div>
+                </div>
+                
+                <div class="stadium-field">
+                    <div class="field-label">ПОЛЕ</div>
+                </div>
+                
+                <div class="stadium-sector" style="grid-row: 2; grid-column: 3;" onclick="selectSector(this, 'E')">
+                    <div class="sector-name">Сектор E</div>
+                    <div class="sector-price">от 3000 ₽</div>
+                    <div class="sector-capacity">20x30 мест</div>
+                </div>
+                
+                <!-- Row 3: C, F, G -->
+                <div class="stadium-sector" style="grid-row: 3; grid-column: 1;" onclick="selectSector(this, 'C')">
+                    <div class="sector-name">Сектор C</div>
+                    <div class="sector-price">от 3500 ₽</div>
+                    <div class="sector-capacity">15x25 мест</div>
+                </div>
+                <div class="stadium-sector" style="grid-row: 3; grid-column: 2;" onclick="selectSector(this, 'F')">
+                    <div class="sector-name">Сектор F</div>
+                    <div class="sector-price">от 2800 ₽</div>
+                    <div class="sector-capacity">20x30 мест</div>
+                </div>
+                <div class="stadium-sector" style="grid-row: 3; grid-column: 3;" onclick="selectSector(this, 'G')">
+                    <div class="sector-name">Сектор G</div>
+                    <div class="sector-price">от 2800 ₽</div>
+                    <div class="sector-capacity">20x30 мест</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="seat-selection-info">
+            <p><strong>Выбранная зона:</strong> <span id="selectedSectorName">Не выбрана</span></p>
+            <p><strong>Цена зоны:</strong> <span id="selectedSectorPrice">-</span></p>
+        </div>
+    </div>
+
+    <script>
+        function selectSector(element, sectorId) {
+            // Remove selected class from all sectors
+            document.querySelectorAll('.stadium-sector').forEach(s => s.classList.remove('selected'));
+            
+            // Add selected class to clicked sector
+            element.classList.add('selected');
+            
+            // Update info
+            const sectorName = element.querySelector('.sector-name').textContent;
+            const sectorPrice = element.querySelector('.sector-price').textContent;
+            
+            document.getElementById('selectedSectorName').textContent = sectorName;
+            document.getElementById('selectedSectorPrice').textContent = sectorPrice;
+        }
+    </script>
+</body>
+</html>

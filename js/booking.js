@@ -118,25 +118,26 @@ function updateFanIdFields(ticketCount) {
 
 function createStadiumVisualization() {
     const container = document.getElementById('stadiumSectors');
-    const fieldContainer = document.querySelector('.stadium-field');
-    const visualization = document.querySelector('.stadium-visualization');
     
     // Clear existing sectors
     container.innerHTML = '';
     
-    // Create sector layout - sectors surround the field
-    // Grid positions:
-    // Row 1: A, (empty), B
-    // Row 2: D, FIELD, E
-    // Row 3: C, (empty), VIP
+    // Create 3x3 grid layout with field in center
+    // All 8 positions around the field filled with sectors
+    // Grid positions (row, col):
+    // (1,1) A    (1,2) B    (1,3) VIP
+    // (2,1) D    (2,2) FIELD (2,3) E
+    // (3,1) C    (3,2) F    (3,3) G
     
     const sectorPositions = [
-        { id: 'A', gridColumn: '1', gridRow: '1' },
-        { id: 'B', gridColumn: '3', gridRow: '1' },
-        { id: 'D', gridColumn: '1', gridRow: '2' },
-        { id: 'E', gridColumn: '3', gridRow: '2' },
-        { id: 'C', gridColumn: '1', gridRow: '3' },
-        { id: 'VIP', gridColumn: '3', gridRow: '3' }
+        { id: 'A', row: 1, col: 1 },
+        { id: 'B', row: 1, col: 2 },
+        { id: 'VIP', row: 1, col: 3 },
+        { id: 'D', row: 2, col: 1 },
+        { id: 'E', row: 2, col: 3 },
+        { id: 'C', row: 3, col: 1 },
+        { id: 'F', row: 3, col: 2 },
+        { id: 'G', row: 3, col: 3 }
     ];
     
     sectorPositions.forEach(position => {
@@ -145,15 +146,15 @@ function createStadiumVisualization() {
             const sectorDiv = document.createElement('div');
             sectorDiv.className = 'stadium-sector';
             sectorDiv.dataset.sectorId = sector.id;
-            sectorDiv.style.gridColumn = position.gridColumn;
-            sectorDiv.style.gridRow = position.gridRow;
+            sectorDiv.style.gridRow = position.row;
+            sectorDiv.style.gridColumn = position.col;
             sectorDiv.innerHTML = `
                 <div class="sector-name">${sector.name}</div>
                 <div class="sector-price">от ${sector.price} ₽</div>
                 <div class="sector-capacity">${sector.rows}x${sector.seatsPerRow} мест</div>
             `;
             sectorDiv.onclick = () => selectZone(sector);
-            visualization.appendChild(sectorDiv);
+            container.appendChild(sectorDiv);
         }
     });
 }

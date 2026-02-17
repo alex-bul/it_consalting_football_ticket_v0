@@ -637,12 +637,11 @@ nav a:hover {
     border-radius: 12px;
     padding: 2rem;
     margin: 1.5rem 0;
-    position: relative;
     display: grid;
-    grid-template-columns: 1fr 2fr 1fr;
-    grid-template-rows: auto auto auto;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
     gap: 1rem;
-    align-items: center;
+    min-height: 600px;
 }
 
 .stadium-field {
@@ -653,6 +652,9 @@ nav a:hover {
     text-align: center;
     grid-column: 2;
     grid-row: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .field-label {
@@ -666,19 +668,14 @@ nav a:hover {
     display: contents;
 }
 
-.sector-row {
-    display: contents;
-}
-
 .stadium-sector {
     background: rgba(255, 255, 255, 0.95);
     border: 3px solid transparent;
     border-radius: 8px;
-    padding: 1rem;
+    padding: 1.5rem 1rem;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s;
-    min-height: 100px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -717,10 +714,6 @@ nav a:hover {
 .sector-capacity {
     font-size: 0.75rem;
     color: var(--text-light);
-}
-
-.sector-spacer {
-    min-height: 100px;
 }
 
 .seat-selection-info {
