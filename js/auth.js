@@ -102,7 +102,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const result = Auth.sendVerificationCode(currentEmail);
         
         if (result.success) {
-            alert('Новый код отправлен на ' + currentEmail);
+            // Show success message without blocking alert
+            const successMsg = document.createElement('div');
+            successMsg.className = 'success-message show';
+            successMsg.textContent = 'Новый код отправлен на ' + currentEmail + ' (MOCKUP: используйте любой 6-значный код)';
+            errorDiv.parentNode.insertBefore(successMsg, errorDiv);
+            
+            setTimeout(() => successMsg.remove(), 5000);
+            
             verificationCodeInput.value = '';
             verificationCodeInput.focus();
         } else {

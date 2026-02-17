@@ -246,7 +246,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     cancelModal.classList.remove('show');
                     const user = Auth.getCurrentUser();
                     displayPreorders(user.id);
-                    alert('Предзаказ успешно отменён');
+                    
+                    // Show success message
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'success-message show';
+                    successDiv.textContent = 'Предзаказ успешно отменён';
+                    document.querySelector('.profile-container h2').after(successDiv);
+                    setTimeout(() => successDiv.remove(), 3000);
                 }
                 
                 preorderToCancel = null;
@@ -270,6 +276,13 @@ function deleteCard(cardId) {
         if (result.success) {
             const user = Auth.getCurrentUser();
             displayCards(user.id);
+            
+            // Show success message
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message show';
+            successDiv.textContent = 'Карта успешно удалена';
+            document.querySelector('.profile-container h2').after(successDiv);
+            setTimeout(() => successDiv.remove(), 3000);
         }
     }
 }

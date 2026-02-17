@@ -219,7 +219,10 @@ function toggleSeat(seatDiv, row, seat) {
     } else {
         // Check if we can select more seats
         if (selectedSeats.length >= ticketCount) {
-            alert(`Вы можете выбрать максимум ${ticketCount} мест. Измените количество билетов или отмените выбор других мест.`);
+            const errorDiv = document.getElementById('bookingError');
+            errorDiv.textContent = `Вы можете выбрать максимум ${ticketCount} мест. Измените количество билетов или отмените выбор других мест.`;
+            errorDiv.classList.add('show');
+            setTimeout(() => errorDiv.classList.remove('show'), 5000);
             return;
         }
         
@@ -297,7 +300,10 @@ function setupEventListeners() {
         
         // If selected seats exceed new count, clear selection
         if (selectedSeats.length > newCount) {
-            alert(`Количество выбранных мест (${selectedSeats.length}) превышает новое количество билетов. Выбор мест сброшен.`);
+            const errorDiv = document.getElementById('bookingError');
+            errorDiv.textContent = `Количество выбранных мест (${selectedSeats.length}) превышает новое количество билетов. Выбор мест сброшен.`;
+            errorDiv.classList.add('show');
+            setTimeout(() => errorDiv.classList.remove('show'), 5000);
             clearSeatSelection();
         }
         
@@ -502,8 +508,14 @@ function handleBookingSubmit(e) {
         }
         
         // Show success and redirect
-        alert(`Предзаказ успешно оформлен!\n\nСектор: ${bookingData.sector}\nМеста: ${bookingData.seats}\n\nВы получите уведомление на email при выдаче билета.`);
-        window.location.href = 'profile.html';
+        const successDiv = document.createElement('div');
+        successDiv.className = 'success-message show';
+        successDiv.innerHTML = `<strong>Предзаказ успешно оформлен!</strong><br><br>Сектор: ${bookingData.sector}<br>Места: ${bookingData.seats}<br><br>Вы получите уведомление на email при выдаче билета.`;
+        errorDiv.parentNode.insertBefore(successDiv, errorDiv);
+        
+        setTimeout(() => {
+            window.location.href = 'profile.html';
+        }, 2000);
     } else {
         errorDiv.textContent = 'Ошибка при оформлении предзаказа';
         errorDiv.classList.add('show');

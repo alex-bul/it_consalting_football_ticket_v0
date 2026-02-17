@@ -58,35 +58,20 @@ const Auth = {
         
         // In real app, send email here
         console.log(`Verification code for ${email}: ${code}`);
-        
-        // For demo purposes, show code in alert
-        alert(`Код подтверждения: ${code}\n(В реальном приложении код будет отправлен на email)`);
+        console.log(`MOCKUP MODE: Use any 6-digit code to login`);
         
         return { success: true, message: 'Код отправлен на ваш email' };
     },
     
     // Verify code and login/register
     verifyCode: function(email, code, name = null) {
-        const verificationData = CookieManager.get('verificationCode');
-        
-        if (!verificationData) {
-            return { success: false, error: 'Код не найден. Запросите новый код.' };
+        // MOCKUP MODE: Accept any 6-digit code
+        if (code.length !== 6 || !/^\d{6}$/.test(code)) {
+            return { success: false, error: 'Код должен содержать 6 цифр' };
         }
         
-        if (verificationData.email !== email) {
-            return { success: false, error: 'Email не совпадает' };
-        }
-        
-        if (Date.now() > verificationData.expiresAt) {
-            CookieManager.delete('verificationCode');
-            return { success: false, error: 'Код истек. Запросите новый код.' };
-        }
-        
-        if (verificationData.code !== code) {
-            return { success: false, error: 'Неверный код' };
-        }
-        
-        // Code is valid, clear it
+        // In mockup mode, we accept any valid 6-digit code
+        // Clear verification data if exists
         CookieManager.delete('verificationCode');
         
         // Check if user exists
