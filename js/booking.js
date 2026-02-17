@@ -1,9 +1,10 @@
 // Booking page functionality with zone selection for preorders
 let currentMatch = null;
 let selectedCard = null;
-let selectedZone = null;
-let selectedSeats = []; // Array to store selected seats
+let selectedSector = null;
+let preferredSeats = []; // Array to store preferred seating zone (can be many seats)
 let ticketFanIds = []; // Array to store Fan ID for each ticket
+let isSelecting = false; // For drag selection
 
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is logged in
@@ -160,56 +161,44 @@ function createStadiumVisualization() {
     });
 }
 
-function selectZone(zone) {
-    const ticketCount = parseInt(document.getElementById('ticketCount').value);
-    
-    // Check if zone has enough consecutive seats
-    const maxConsecutiveSeats = zone.seatsPerRow;
-    if (ticketCount > maxConsecutiveSeats) {
-        const errorDiv = document.getElementById('bookingError');
-        errorDiv.textContent = `В зоне "${zone.name}" максимум ${maxConsecutiveSeats} мест в ряду. Выберите другую зону или уменьшите количество билетов.`;
-        errorDiv.classList.add('show');
-        setTimeout(() => errorDiv.classList.remove('show'), 5000);
-        return;
-    }
-    
-    selectedZone = zone;
-    selectedSeats = []; // Reset selected seats when changing zone
+function selectZone(sector) {
+    selectedSector = sector;
+    preferredSeats = []; // Reset preferred seats when changing sector
     
     // Update visual selection
     document.querySelectorAll('.stadium-sector').forEach(s => s.classList.remove('selected'));
-    document.querySelector(`[data-sector-id="${zone.id}"]`).classList.add('selected');
+    document.querySelector(`[data-sector-id="${sector.id}"]`).classList.add('selected');
     
     // Update info
-    document.getElementById('selectedSectorName').textContent = zone.name;
-    document.getElementById('selectedSectorPrice').textContent = `${zone.price} ₽`;
+    document.getElementById('selectedSectorName').textContent = sector.name;
+    document.getElementById('selectedSectorPrice').textContent = `${sector.price} ₽`;
     
     // Update base price
-    document.getElementById('basePrice').textContent = `${zone.price} ₽`;
-    document.getElementById('priceLimit').min = zone.price;
-    document.getElementById('priceLimit').value = zone.price;
+    document.getElementById('basePrice').textContent = `${sector.price} ₽`;
+    document.getElementById('priceLimit').min = sector.price;
+    document.getElementById('priceLimit').value = sector.price;
     
-    // Show seat map for seat selection
-    displaySeatMap(zone);
+    // Show seat map for zone selection
+    displaySeatMap(sector);
     
     updateTotalPrice();
     checkFormCompletion();
 }
 
-function displaySeatMap(zone) {
+function displaySeatMap(sector) {
     const container = document.getElementById('seatMapContainer');
     const seatGrid = document.getElementById('seatGrid');
     const currentSectorName = document.getElementById('currentSectorName');
     
     // Show container
     container.style.display = 'block';
-    currentSectorName.textContent = zone.name;
+    currentSectorName.textContent = sector.name;
     
     // Clear previous seats
     seatGrid.innerHTML = '';
     
     // Generate seat map
-    for (let row = 1; row <= zone.rows; row++) {
+    for (let row = 1; row <= sector.rows; row++) {
         const rowDiv = document.createElement('div');
         rowDiv.className = 'seat-row';
         
@@ -221,21 +210,23 @@ function displaySeatMap(zone) {
         const seatsContainer = document.createElement('div');
         seatsContainer.className = 'seats-container';
         
-        for (let seat = 1; seat <= zone.seatsPerRow; seat++) {
+        for (let seat = 1; seat <= sector.seatsPerRow; seat++) {
             const seatDiv = document.createElement('div');
-            seatDiv.className = 'seat';
+            seatDiv.className = 'seat available';
             seatDiv.dataset.row = row;
             seatDiv.dataset.seat = seat;
             seatDiv.textContent = seat;
             
-            // Randomly mark some seats as occupied (for demo purposes)
-            const isOccupied = Math.random() < 0.3; // 30% occupied
-            if (isOccupied) {
-                seatDiv.classList.add('occupied');
-            } else {
-                seatDiv.classList.add('available');
-                seatDiv.onclick = () => toggleSeatSelection(zone, row, seat);
-            }
+            // Add event listeners for drag selection
+            seatDiv.addEventListener('mousedown', (e) => startSelection(e, row, seat));
+            seatDiv.addEventListener('mouseenter', (e) => continueSelection(e, row, seat));
+            seatDiv.addEventListener('mouseup', stopSelection);
+            
+            // Also support click for single seat selection
+            seatDiv.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleSeatInZone(row, seat);
+            });
             
             seatsContainer.appendChild(seatDiv);
         }
@@ -244,59 +235,78 @@ function displaySeatMap(zone) {
         seatGrid.appendChild(rowDiv);
     }
     
-    updateSelectedSeatsDisplay();
+    // Add global mouseup listener
+    document.addEventListener('mouseup', stopSelection);
+    
+    updatePreferredZoneDisplay();
 }
 
-function toggleSeatSelection(zone, row, seat) {
-    const ticketCount = parseInt(document.getElementById('ticketCount').value);
+function startSelection(e, row, seat) {
+    e.preventDefault();
+    isSelecting = true;
+    toggleSeatInZone(row, seat);
+}
+
+function continueSelection(e, row, seat) {
+    if (isSelecting) {
+        toggleSeatInZone(row, seat, true); // true = only add, don't toggle
+    }
+}
+
+function stopSelection() {
+    isSelecting = false;
+}
+
+function toggleSeatInZone(row, seat, onlyAdd = false) {
     const seatId = `${row}-${seat}`;
     const seatElement = document.querySelector(`[data-row="${row}"][data-seat="${seat}"]`);
     
-    // Check if seat is already selected
-    const seatIndex = selectedSeats.findIndex(s => s.id === seatId);
+    if (!seatElement) return;
     
-    if (seatIndex > -1) {
-        // Deselect seat
-        selectedSeats.splice(seatIndex, 1);
+    // Check if seat is already in preferred zone
+    const seatIndex = preferredSeats.findIndex(s => s.id === seatId);
+    
+    if (seatIndex > -1 && !onlyAdd) {
+        // Remove from preferred zone
+        preferredSeats.splice(seatIndex, 1);
         seatElement.classList.remove('selected');
-        seatElement.classList.add('available');
-    } else {
-        // Check if we can select more seats
-        if (selectedSeats.length >= ticketCount) {
-            const errorDiv = document.getElementById('bookingError');
-            errorDiv.textContent = `Вы можете выбрать максимум ${ticketCount} мест. Отмените выбор других мест, чтобы выбрать это.`;
-            errorDiv.classList.add('show');
-            setTimeout(() => errorDiv.classList.remove('show'), 3000);
-            return;
-        }
-        
-        // Select seat
-        selectedSeats.push({
+    } else if (seatIndex === -1) {
+        // Add to preferred zone
+        preferredSeats.push({
             id: seatId,
             row: row,
-            seat: seat,
-            zone: zone.name,
-            zoneId: zone.id
+            seat: seat
         });
-        seatElement.classList.remove('available');
         seatElement.classList.add('selected');
     }
     
-    updateSelectedSeatsDisplay();
+    updatePreferredZoneDisplay();
     checkFormCompletion();
 }
 
-function updateSelectedSeatsDisplay() {
+function updatePreferredZoneDisplay() {
     const countSpan = document.getElementById('selectedSeatsCount');
     const listSpan = document.getElementById('selectedSeatsList');
     
-    countSpan.textContent = selectedSeats.length;
+    countSpan.textContent = preferredSeats.length;
     
-    if (selectedSeats.length > 0) {
-        const seatsList = selectedSeats
-            .map(s => `Ряд ${s.row}, Место ${s.seat}`)
+    if (preferredSeats.length > 0) {
+        // Group by rows for better display
+        const rowGroups = {};
+        preferredSeats.forEach(s => {
+            if (!rowGroups[s.row]) rowGroups[s.row] = [];
+            rowGroups[s.row].push(s.seat);
+        });
+        
+        const displayText = Object.keys(rowGroups)
+            .sort((a, b) => a - b)
+            .map(row => {
+                const seats = rowGroups[row].sort((a, b) => a - b);
+                return `Ряд ${row}: места ${seats.join(', ')}`;
+            })
             .join('; ');
-        listSpan.textContent = seatsList;
+        
+        listSpan.textContent = displayText;
     } else {
         listSpan.textContent = '-';
     }

@@ -27,8 +27,8 @@
 
             <form id="bookingForm" class="booking-form">
                 <div class="form-section">
-                    <h3>1. Выбор зоны на карте стадиона</h3>
-                    <p class="info-text">При оформлении предзаказа вы выбираете зону, где хотели бы сидеть. Конкретные места будут назначены системой при выдаче билетов.</p>
+                    <h3>1. Выбор сектора и предпочитаемой зоны посадки</h3>
+                    <p class="info-text">Сначала выберите сектор на карте стадиона, затем отметьте предпочитаемую зону посадки (можно выбрать несколько мест). Система постарается подобрать билеты в выбранной зоне.</p>
                     
                     <!-- Stadium Map Visualization -->
                     <div class="stadium-visualization">
@@ -43,9 +43,10 @@
                         <p><strong>Цена зоны:</strong> <span id="selectedSectorPrice">-</span></p>
                     </div>
 
-                    <!-- Interactive Seat Grid - Hidden for zone selection -->
+                    <!-- Interactive Seat Grid for zone selection -->
                     <div id="seatMapContainer" style="display: none;">
-                        <h4>Выберите места в секторе <span id="currentSectorName"></span></h4>
+                        <h4>Выберите предпочитаемую зону в секторе <span id="currentSectorName"></span></h4>
+                        <p class="info-text">💡 <strong>Совет:</strong> Кликайте по местам или зажмите кнопку мыши и проведите по нескольким местам для быстрого выбора зоны. Можно выбрать любое количество мест.</p>
                         <div class="seat-legend">
                             <div class="legend-item">
                                 <div class="seat-icon available"></div>
@@ -53,24 +54,20 @@
                             </div>
                             <div class="legend-item">
                                 <div class="seat-icon selected"></div>
-                                <span>Выбрано</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="seat-icon occupied"></div>
-                                <span>Занято</span>
+                                <span>Предпочитаемая зона</span>
                             </div>
                         </div>
                         <div id="seatGrid" class="seat-grid"></div>
                         <div class="selected-seats-summary">
-                            <p><strong>Выбрано мест:</strong> <span id="selectedSeatsCount">0</span></p>
-                            <p><strong>Выбранные места:</strong> <span id="selectedSeatsList">-</span></p>
+                            <p><strong>Выбрано мест в зоне:</strong> <span id="selectedSeatsCount">0</span></p>
+                            <p><strong>Предпочитаемая зона:</strong> <span id="selectedSeatsList">-</span></p>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label for="ticketCount">Количество билетов</label>
                         <input type="number" id="ticketCount" min="1" max="10" value="1" required>
-                        <span class="field-hint">Максимум 10 билетов за один заказ. При выборе нескольких билетов система разместит всех в один ряд рядом друг с другом.</span>
+                        <span class="field-hint">Максимум 10 билетов за один заказ. Система постарается подобрать указанное количество билетов в выбранной вами зоне.</span>
                     </div>
                 </div>
 
