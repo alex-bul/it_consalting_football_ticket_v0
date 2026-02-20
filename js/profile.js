@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     loadProfile();
     setupEventListeners();
+    setupCancelModal();
 });
 
 function loadProfile() {
@@ -279,7 +280,7 @@ function cancelPreorder(preorderId) {
     modal.classList.add('show');
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+function setupCancelModal() {
     const confirmCancel = document.getElementById('confirmCancel');
     const cancelCancelBtn = document.getElementById('cancelCancelBtn');
     const cancelModal = document.getElementById('cancelModal');
@@ -295,11 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     displayPreorders(user.id);
                     
                     // Show success message
-                    const successDiv = document.createElement('div');
-                    successDiv.className = 'success-message show';
-                    successDiv.textContent = 'Предзаказ успешно отменён';
-                    document.querySelector('.profile-container h2').after(successDiv);
-                    setTimeout(() => successDiv.remove(), 3000);
+                    showSuccess('Предзаказ успешно отменён');
                 }
                 
                 preorderToCancel = null;
@@ -313,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function() {
             preorderToCancel = null;
         });
     }
-});
+}
 
 // Delete card function (global for onclick)
 function deleteCard(cardId) {
