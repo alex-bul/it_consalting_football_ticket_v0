@@ -206,10 +206,11 @@ function initializeFabricCanvas(sector) {
     
     seatObjects = {};
     
-    // Calculate canvas dimensions
-    const seatSize = 30; // Size of each seat
-    const seatGap = 5; // Gap between seats
-    const rowLabelWidth = 60; // Width for row labels
+    // Calculate canvas dimensions with mobile responsiveness
+    const isMobile = window.innerWidth <= 768;
+    const seatSize = isMobile ? 24 : 30; // Smaller seats on mobile
+    const seatGap = isMobile ? 3 : 5; // Smaller gap on mobile
+    const rowLabelWidth = isMobile ? 50 : 60; // Narrower labels on mobile
     const canvasWidth = rowLabelWidth + (sector.seatsPerRow * (seatSize + seatGap)) + 20;
     const canvasHeight = (sector.rows * (seatSize + seatGap)) + 40;
     
@@ -227,12 +228,15 @@ function initializeFabricCanvas(sector) {
     canvas.setHeight(canvasHeight);
     
     // Generate seats
+    const fontSize = isMobile ? 11 : 14;
+    const seatFontSize = isMobile ? 10 : 12;
+    
     for (let row = 1; row <= sector.rows; row++) {
         // Add row label
         const rowLabel = new fabric.Text(`Ряд ${row}`, {
             left: 10,
             top: 20 + (row - 1) * (seatSize + seatGap) + seatSize / 3,
-            fontSize: 14,
+            fontSize: fontSize,
             fontFamily: 'Arial',
             fill: '#333',
             selectable: false
@@ -266,7 +270,7 @@ function initializeFabricCanvas(sector) {
             const seatText = new fabric.Text(seat.toString(), {
                 left: x + seatSize / 2,
                 top: y + seatSize / 2,
-                fontSize: 12,
+                fontSize: seatFontSize,
                 fontFamily: 'Arial',
                 fill: '#fff',
                 originX: 'center',
@@ -309,6 +313,28 @@ function initializeFabricCanvas(sector) {
     
     canvas.on('mouse:up', function() {
         isDrawing = false;
+    });
+    
+    // Add touch event handlers for mobile devices
+    canvas.on('touch:gesture', function(e) {
+        e.e.preventDefault();
+    });
+    
+    canvas.on('touch:drag', function(options) {
+        if (isDrawing) {
+            handleCanvasClick(options);
+        }
+    });
+    
+    // Handle window resize for responsive canvas
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function() {
+            if (selectedSector) {
+                displaySeatMap(selectedSector);
+            }
+        }, 250);
     });
     
     canvas.renderAll();
