@@ -85,7 +85,7 @@ function displayPreorders(userId) {
         preorderDiv.className = `preorder-item ${preorder.status}`;
         
         const statusText = {
-            'pending': 'Ожидает выдачи',
+            'pending': 'Ожидает исполнения',
             'cancelled': 'Отменён',
             'completed': 'Выполнен'
         };

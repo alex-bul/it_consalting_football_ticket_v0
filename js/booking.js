@@ -723,6 +723,13 @@ function handleBookingSubmit(e) {
         return;
     }
     
+    // Validate that selected area is greater than or equal to ticket count
+    if (preferredSeats.length < ticketCount) {
+        errorDiv.textContent = `Выбранная область должна содержать минимум ${ticketCount} мест(а). Сейчас выбрано: ${preferredSeats.length}`;
+        errorDiv.classList.add('show');
+        return;
+    }
+    
     // Validate Fan IDs if required
     if (currentMatch.fanIdRequired) {
         const allFanIdsSelected = selectedFanIds.every(fanId => fanId !== null);
