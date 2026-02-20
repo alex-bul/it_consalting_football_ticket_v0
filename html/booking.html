@@ -117,8 +117,9 @@
                     </div>
                     <div id="fanIdSection" style="display: none;">
                         <h4>Fan ID для каждого билета</h4>
-                        <p class="info-text">Для посещения данного матча требуется Fan ID для каждого билета</p>
+                        <p class="info-text">Для посещения данного матча требуется Fan ID для каждого билета. Выберите из сохранённых или добавьте новый.</p>
                         <div id="fanIdContainer"></div>
+                        <button type="button" id="addNewFanIdBtn" class="btn btn-secondary" style="margin-top: 1rem; display: none;">+ Добавить новый Fan ID</button>
                     </div>
                 </div>
 
@@ -195,6 +196,26 @@
                 </div>
                 <div id="cardError" class="error-message"></div>
                 <button type="submit" class="btn btn-primary">Привязать карту</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Fan ID Modal -->
+    <div id="addFanIdModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Добавить Fan ID</h2>
+            <form id="addFanIdForm">
+                <div class="form-group">
+                    <label for="newFanIdName">ФИО владельца Fan ID</label>
+                    <input type="text" id="newFanIdName" placeholder="Иванов Иван Иванович" required>
+                </div>
+                <div class="form-group">
+                    <label for="newFanIdNumber">Номер Fan ID (9 цифр)</label>
+                    <input type="text" id="newFanIdNumber" placeholder="123456789" maxlength="9" required>
+                </div>
+                <div id="addFanIdError" class="error-message"></div>
+                <button type="submit" class="btn btn-primary">Добавить</button>
             </form>
         </div>
     </div>

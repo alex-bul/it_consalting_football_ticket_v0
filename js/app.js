@@ -84,7 +84,7 @@ const Auth = {
                 id: Date.now().toString(),
                 name: name && name.trim() !== '' ? name.trim() : email.split('@')[0],
                 email: email,
-                fanId: null,
+                fanIds: [], // Array of Fan IDs
                 createdAt: new Date().toISOString()
             };
             
@@ -97,7 +97,7 @@ const Auth = {
             id: user.id,
             name: user.name,
             email: user.email,
-            fanId: user.fanId || null
+            fanIds: user.fanIds || []
         });
         
         return { success: true, isNewUser: !users.find(u => u.email === email) };
@@ -305,6 +305,95 @@ const CardManager = {
     }
 };
 
+// Fan ID management
+const FanIdManager = {
+    getAll: function(userId) {
+        const fanIds = CookieManager.get('fanIds') || [];
+        return fanIds.filter(f => f.userId === userId);
+    },
+    
+    add: function(userId, fanIdData) {
+        const fanIds = CookieManager.get('fanIds') || [];
+        
+        // Validate Fan ID (9 digits)
+        const fanIdNumber = fanIdData.number.replace(/\s/g, '');
+        if (!/^\d{9}$/.test(fanIdNumber)) {
+            return { success: false, error: 'Fan ID должен содержать 9 цифр' };
+        }
+        
+        // Check if Fan ID already exists for this user
+        const existingFanId = fanIds.find(f => f.userId === userId && f.number === fanIdNumber);
+        if (existingFanId) {
+            return { success: false, error: 'Этот Fan ID уже добавлен' };
+        }
+        
+        const newFanId = {
+            id: Date.now().toString(),
+            userId: userId,
+            name: fanIdData.name.trim(),
+            number: fanIdNumber,
+            addedAt: new Date().toISOString()
+        };
+        
+        fanIds.push(newFanId);
+        CookieManager.set('fanIds', fanIds);
+        
+        // Update user's fanIds array in users storage
+        const users = CookieManager.get('users') || [];
+        const userIndex = users.findIndex(u => u.id === userId);
+        if (userIndex !== -1) {
+            if (!users[userIndex].fanIds) {
+                users[userIndex].fanIds = [];
+            }
+            users[userIndex].fanIds.push(newFanId);
+            CookieManager.set('users', users);
+            
+            // Update current user session
+            const currentUser = Auth.getCurrentUser();
+            if (currentUser && currentUser.id === userId) {
+                currentUser.fanIds = users[userIndex].fanIds;
+                CookieManager.set('currentUser', currentUser);
+            }
+        }
+        
+        return { success: true, fanId: newFanId };
+    },
+    
+    delete: function(fanIdId, userId) {
+        let fanIds = CookieManager.get('fanIds') || [];
+        const fanIdToDelete = fanIds.find(f => f.id === fanIdId && f.userId === userId);
+        
+        if (!fanIdToDelete) {
+            return { success: false, error: 'Fan ID не найден' };
+        }
+        
+        fanIds = fanIds.filter(f => f.id !== fanIdId);
+        CookieManager.set('fanIds', fanIds);
+        
+        // Update user's fanIds array
+        const users = CookieManager.get('users') || [];
+        const userIndex = users.findIndex(u => u.id === userId);
+        if (userIndex !== -1) {
+            users[userIndex].fanIds = fanIds.filter(f => f.userId === userId);
+            CookieManager.set('users', users);
+            
+            // Update current user session
+            const currentUser = Auth.getCurrentUser();
+            if (currentUser && currentUser.id === userId) {
+                currentUser.fanIds = users[userIndex].fanIds;
+                CookieManager.set('currentUser', currentUser);
+            }
+        }
+        
+        return { success: true };
+    },
+    
+    getById: function(fanIdId) {
+        const fanIds = CookieManager.get('fanIds') || [];
+        return fanIds.find(f => f.id === fanIdId);
+    }
+};
+
 // Validation functions
 function validateEmail(email) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -344,4 +433,19 @@ function formatExpiry(value) {
         return cleaned.slice(0, 2) + '/' + cleaned.slice(2, 4);
     }
     return cleaned;
+}
+
+// Validate Fan ID (9 digits)
+function validateFanId(fanId) {
+    const cleaned = fanId.replace(/\s/g, '');
+    return /^\d{9}$/.test(cleaned);
+}
+
+// Format Fan ID input (add spaces for readability)
+function formatFanId(value) {
+    const cleaned = value.replace(/\D/g, '');
+    if (cleaned.length <= 9) {
+        return cleaned;
+    }
+    return cleaned.slice(0, 9);
 }

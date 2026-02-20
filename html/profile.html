@@ -34,19 +34,25 @@
 
             <div class="profile-section">
                 <h3>Fan ID</h3>
-                <div id="fanIdInfo" class="fan-id-info">
-                    <!-- Fan ID info will be loaded here -->
+                <p class="info-text">Добавьте Fan ID для себя и других людей. Один билет = один Fan ID.</p>
+                <div id="fanIdsList" class="fan-ids-list">
+                    <!-- Fan IDs list will be loaded here -->
                 </div>
-                <form id="fanIdForm" style="display: none;">
+                <form id="fanIdForm" style="display: none; margin-top: 1rem;">
                     <div class="form-group">
-                        <label for="fanIdInput">Номер Fan ID</label>
-                        <input type="text" id="fanIdInput" placeholder="Введите номер Fan ID">
+                        <label for="fanIdName">ФИО владельца Fan ID</label>
+                        <input type="text" id="fanIdName" placeholder="Иванов Иван Иванович" required>
+                        <span class="field-hint">Укажите полное имя владельца Fan ID</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="fanIdNumber">Номер Fan ID (9 цифр)</label>
+                        <input type="text" id="fanIdNumber" placeholder="123456789" maxlength="9" required>
                         <span class="field-hint">Fan ID требуется для матчей РПЛ</span>
                     </div>
                     <button type="submit" class="btn btn-primary">Сохранить</button>
                     <button type="button" id="cancelFanId" class="btn btn-secondary">Отмена</button>
                 </form>
-                <button id="addFanIdBtn" class="btn btn-secondary">Добавить Fan ID</button>
+                <button id="addFanIdBtn" class="btn btn-secondary">+ Добавить Fan ID</button>
             </div>
 
             <div class="profile-section">

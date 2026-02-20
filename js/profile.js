@@ -16,8 +16,8 @@ function loadProfile() {
     // Display profile info
     displayProfileInfo(user);
     
-    // Display Fan ID info
-    displayFanIdInfo(user);
+    // Display Fan IDs list
+    displayFanIdsList(user.id);
     
     // Display preorders
     displayPreorders(user.id);
@@ -40,24 +40,29 @@ function displayProfileInfo(user) {
     `;
 }
 
-function displayFanIdInfo(user) {
-    const container = document.getElementById('fanIdInfo');
-    const addBtn = document.getElementById('addFanIdBtn');
+function displayFanIdsList(userId) {
+    const container = document.getElementById('fanIdsList');
+    const fanIds = FanIdManager.getAll(userId);
     
-    if (user.fanId) {
-        container.innerHTML = `
-            <div class="info-row">
-                <span class="info-label">Fan ID:</span>
-                <span class="info-value">${user.fanId}</span>
-            </div>
-        `;
-        addBtn.textContent = 'Изменить Fan ID';
-    } else {
-        container.innerHTML = `
-            <p style="color: var(--text-light);">Fan ID не добавлен</p>
-        `;
-        addBtn.textContent = 'Добавить Fan ID';
+    if (fanIds.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-light);">У вас пока нет добавленных Fan ID</p>';
+        return;
     }
+    
+    container.innerHTML = '';
+    
+    fanIds.forEach(fanId => {
+        const fanIdDiv = document.createElement('div');
+        fanIdDiv.className = 'fan-id-item';
+        fanIdDiv.innerHTML = `
+            <div>
+                <div class="fan-id-name"><strong>${fanId.name}</strong></div>
+                <div class="fan-id-number">🎫 ${fanId.number}</div>
+            </div>
+            <button class="btn btn-danger btn-small" onclick="deleteFanId('${fanId.id}')">Удалить</button>
+        `;
+        container.appendChild(fanIdDiv);
+    });
 }
 
 function displayPreorders(userId) {
@@ -91,10 +96,19 @@ function displayPreorders(userId) {
             ? `🎫 Зона: ${preorder.zone}${preorder.ticketCount > 1 ? ' (места будут в один ряд)' : ''}`
             : `🎫 Сектор ${preorder.sector}, ${preorder.seats || 'Места не указаны'}`;
         
-        // Handle Fan IDs - can be array or single value
+        // Handle Fan IDs - can be array of objects or single value
         let fanIdInfo = '';
         if (preorder.fanIds && Array.isArray(preorder.fanIds)) {
-            fanIdInfo = `<p>🎫 Fan ID: ${preorder.fanIds.join(', ')}</p>`;
+            if (preorder.fanIds.length > 0) {
+                // Check if fanIds are objects with name and number
+                if (typeof preorder.fanIds[0] === 'object' && preorder.fanIds[0].name) {
+                    const fanIdList = preorder.fanIds.map(f => `${f.name} (${f.number})`).join(', ');
+                    fanIdInfo = `<p>🎫 Fan ID: ${fanIdList}</p>`;
+                } else {
+                    // Old format - just numbers
+                    fanIdInfo = `<p>🎫 Fan ID: ${preorder.fanIds.join(', ')}</p>`;
+                }
+            }
         } else if (preorder.fanId) {
             fanIdInfo = `<p>🎫 Fan ID: ${preorder.fanId}</p>`;
         }
@@ -184,39 +198,59 @@ function setupEventListeners() {
         }
     });
     
-    // Fan ID
+    // Fan ID management
     const addFanIdBtn = document.getElementById('addFanIdBtn');
     const fanIdForm = document.getElementById('fanIdForm');
     const cancelFanId = document.getElementById('cancelFanId');
+    const fanIdNameInput = document.getElementById('fanIdName');
+    const fanIdNumberInput = document.getElementById('fanIdNumber');
     
     addFanIdBtn.addEventListener('click', function() {
-        const user = Auth.getCurrentUser();
-        if (user.fanId) {
-            document.getElementById('fanIdInput').value = user.fanId;
-        }
         fanIdForm.style.display = 'block';
         addFanIdBtn.style.display = 'none';
+        fanIdNameInput.focus();
     });
     
     cancelFanId.addEventListener('click', function() {
         fanIdForm.style.display = 'none';
         addFanIdBtn.style.display = 'inline-block';
-        document.getElementById('fanIdInput').value = '';
+        fanIdForm.reset();
+    });
+    
+    // Format Fan ID input (only digits)
+    fanIdNumberInput.addEventListener('input', function() {
+        this.value = formatFanId(this.value);
     });
     
     fanIdForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        const fanId = document.getElementById('fanIdInput').value.trim();
+        const user = Auth.getCurrentUser();
+        const name = fanIdNameInput.value.trim();
+        const number = fanIdNumberInput.value.trim();
         
-        if (fanId) {
-            const result = Auth.updateProfile({ fanId });
+        if (!name || !number) {
+            showError('Заполните все поля');
+            return;
+        }
+        
+        if (!validateFanId(number)) {
+            showError('Fan ID должен содержать 9 цифр');
+            return;
+        }
+        
+        const result = FanIdManager.add(user.id, { name, number });
+        
+        if (result.success) {
+            fanIdForm.style.display = 'none';
+            addFanIdBtn.style.display = 'inline-block';
+            fanIdForm.reset();
+            displayFanIdsList(user.id);
             
-            if (result.success) {
-                fanIdForm.style.display = 'none';
-                addFanIdBtn.style.display = 'inline-block';
-                loadProfile();
-            }
+            // Show success message
+            showSuccess('Fan ID успешно добавлен');
+        } else {
+            showError(result.error);
         }
     });
     
@@ -298,6 +332,38 @@ function deleteCard(cardId) {
             setTimeout(() => successDiv.remove(), 3000);
         }
     }
+}
+
+// Delete Fan ID function (global for onclick)
+function deleteFanId(fanIdId) {
+    if (confirm('Вы уверены, что хотите удалить этот Fan ID?')) {
+        const user = Auth.getCurrentUser();
+        const result = FanIdManager.delete(fanIdId, user.id);
+        
+        if (result.success) {
+            displayFanIdsList(user.id);
+            showSuccess('Fan ID успешно удалён');
+        } else {
+            showError(result.error || 'Ошибка при удалении Fan ID');
+        }
+    }
+}
+
+// Helper functions for messages
+function showSuccess(message) {
+    const successDiv = document.createElement('div');
+    successDiv.className = 'success-message show';
+    successDiv.textContent = message;
+    document.querySelector('.profile-container h2').after(successDiv);
+    setTimeout(() => successDiv.remove(), 3000);
+}
+
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message show';
+    errorDiv.textContent = message;
+    document.querySelector('.profile-container h2').after(errorDiv);
+    setTimeout(() => errorDiv.remove(), 3000);
 }
 
 // Close modals on outside click

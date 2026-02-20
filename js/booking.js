@@ -3,7 +3,7 @@ let currentMatch = null;
 let selectedCard = null;
 let selectedSector = null;
 let preferredSeats = []; // Array to store preferred seating zone (can be many seats)
-let ticketFanIds = []; // Array to store Fan ID for each ticket
+let selectedFanIds = []; // Array to store selected Fan ID objects for each ticket
 let brushSize = 1; // Brush size (1x1, 3x3, 5x5, etc.)
 let canvas = null; // Fabric.js canvas
 let seatObjects = {}; // Store seat objects by ID for quick access
@@ -78,47 +78,61 @@ function initializeFanIdFields() {
 function updateFanIdFields(ticketCount) {
     const fanIdSection = document.getElementById('fanIdSection');
     const fanIdContainer = document.getElementById('fanIdContainer');
+    const addNewFanIdBtn = document.getElementById('addNewFanIdBtn');
     
     if (!currentMatch.fanIdRequired) {
         fanIdSection.style.display = 'none';
-        ticketFanIds = [];
+        selectedFanIds = [];
         return;
     }
     
     fanIdSection.style.display = 'block';
     fanIdContainer.innerHTML = '';
+    addNewFanIdBtn.style.display = 'block';
     
     const user = Auth.getCurrentUser();
+    const savedFanIds = FanIdManager.getAll(user.id);
+    
+    // Initialize selectedFanIds array
+    selectedFanIds = new Array(ticketCount).fill(null);
     
     for (let i = 0; i < ticketCount; i++) {
         const fanIdGroup = document.createElement('div');
-        fanIdGroup.className = 'form-group';
+        fanIdGroup.className = 'form-group fan-id-selector';
+        fanIdGroup.style.marginBottom = '1.5rem';
+        
+        let selectOptions = '<option value="">Выберите Fan ID</option>';
+        savedFanIds.forEach(fanId => {
+            selectOptions += `<option value="${fanId.id}">${fanId.name} - ${fanId.number}</option>`;
+        });
+        
         fanIdGroup.innerHTML = `
-            <label for="fanId${i}">Fan ID для билета ${i + 1}</label>
-            <input type="text" id="fanId${i}" class="fan-id-input" data-ticket-index="${i}" placeholder="Введите номер Fan ID" required>
+            <label for="fanIdSelect${i}">Fan ID для билета ${i + 1}</label>
+            <select id="fanIdSelect${i}" class="fan-id-select" data-ticket-index="${i}" required>
+                ${selectOptions}
+            </select>
             <span class="field-hint warning">⚠️ Обязательное поле для посещения матча</span>
         `;
         fanIdContainer.appendChild(fanIdGroup);
         
-        // Pre-fill first ticket with user's Fan ID if available
-        if (i === 0 && user.fanId) {
-            setTimeout(() => {
-                document.getElementById(`fanId${i}`).value = user.fanId;
-            }, 0);
-        }
+        // Add event listener to select
+        setTimeout(() => {
+            const select = document.getElementById(`fanIdSelect${i}`);
+            select.addEventListener('change', function() {
+                const index = parseInt(this.dataset.ticketIndex);
+                const fanIdId = this.value;
+                
+                if (fanIdId) {
+                    const fanId = FanIdManager.getById(fanIdId);
+                    selectedFanIds[index] = fanId;
+                } else {
+                    selectedFanIds[index] = null;
+                }
+                
+                checkFormCompletion();
+            });
+        }, 0);
     }
-    
-    // Initialize ticketFanIds array
-    ticketFanIds = new Array(ticketCount).fill('');
-    
-    // Add event listeners to Fan ID inputs
-    document.querySelectorAll('.fan-id-input').forEach(input => {
-        input.addEventListener('input', function() {
-            const index = parseInt(this.dataset.ticketIndex);
-            ticketFanIds[index] = this.value.trim();
-            checkFormCompletion();
-        });
-    });
 }
 
 function createStadiumVisualization() {
@@ -470,6 +484,68 @@ function selectCard(cardId) {
 }
 
 function setupEventListeners() {
+    // Add new Fan ID button
+    const addNewFanIdBtn = document.getElementById('addNewFanIdBtn');
+    const addFanIdModal = document.getElementById('addFanIdModal');
+    const addFanIdForm = document.getElementById('addFanIdForm');
+    const newFanIdNameInput = document.getElementById('newFanIdName');
+    const newFanIdNumberInput = document.getElementById('newFanIdNumber');
+    
+    addNewFanIdBtn.addEventListener('click', function() {
+        addFanIdModal.classList.add('show');
+        newFanIdNameInput.focus();
+    });
+    
+    // Format Fan ID input
+    newFanIdNumberInput.addEventListener('input', function() {
+        this.value = formatFanId(this.value);
+    });
+    
+    // Add Fan ID form submission
+    addFanIdForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const user = Auth.getCurrentUser();
+        const name = newFanIdNameInput.value.trim();
+        const number = newFanIdNumberInput.value.trim();
+        const errorDiv = document.getElementById('addFanIdError');
+        
+        errorDiv.classList.remove('show');
+        
+        if (!name || !number) {
+            errorDiv.textContent = 'Заполните все поля';
+            errorDiv.classList.add('show');
+            return;
+        }
+        
+        if (!validateFanId(number)) {
+            errorDiv.textContent = 'Fan ID должен содержать 9 цифр';
+            errorDiv.classList.add('show');
+            return;
+        }
+        
+        const result = FanIdManager.add(user.id, { name, number });
+        
+        if (result.success) {
+            addFanIdModal.classList.remove('show');
+            addFanIdForm.reset();
+            
+            // Refresh Fan ID fields to show new option
+            const ticketCount = parseInt(document.getElementById('ticketCount').value);
+            updateFanIdFields(ticketCount);
+            
+            // Show success message
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message show';
+            successDiv.textContent = 'Fan ID успешно добавлен';
+            document.querySelector('.booking-container h2').after(successDiv);
+            setTimeout(() => successDiv.remove(), 3000);
+        } else {
+            errorDiv.textContent = result.error;
+            errorDiv.classList.add('show');
+        }
+    });
+    
     // Brush size selector
     document.querySelectorAll('.brush-btn').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -607,8 +683,8 @@ function checkFormCompletion() {
     
     let fanIdValid = true;
     if (currentMatch.fanIdRequired) {
-        // Check if all Fan IDs are filled
-        fanIdValid = ticketFanIds.every(fanId => fanId.trim() !== '');
+        // Check if all Fan IDs are selected
+        fanIdValid = selectedFanIds.every(fanId => fanId !== null);
     }
     
     const submitBtn = document.getElementById('submitBooking');
@@ -649,9 +725,9 @@ function handleBookingSubmit(e) {
     
     // Validate Fan IDs if required
     if (currentMatch.fanIdRequired) {
-        const allFanIdsFilled = ticketFanIds.every(fanId => fanId.trim() !== '');
-        if (!allFanIdsFilled) {
-            errorDiv.textContent = 'Необходимо указать Fan ID для каждого билета';
+        const allFanIdsSelected = selectedFanIds.every(fanId => fanId !== null);
+        if (!allFanIdsSelected) {
+            errorDiv.textContent = 'Необходимо выбрать Fan ID для каждого билета';
             errorDiv.classList.add('show');
             return;
         }
@@ -673,7 +749,7 @@ function handleBookingSubmit(e) {
         priceLimit: parseInt(document.getElementById('priceLimit').value),
         fullName: document.getElementById('fullName').value,
         email: document.getElementById('email').value,
-        fanIds: currentMatch.fanIdRequired ? ticketFanIds : null,
+        fanIds: currentMatch.fanIdRequired ? selectedFanIds.map(f => ({ id: f.id, name: f.name, number: f.number })) : null,
         cardId: selectedCard
     };
     
@@ -681,11 +757,6 @@ function handleBookingSubmit(e) {
     const result = PreorderManager.create(bookingData);
     
     if (result.success) {
-        // Update user's Fan ID if provided (use first Fan ID)
-        if (bookingData.fanIds && bookingData.fanIds[0] && bookingData.fanIds[0] !== user.fanId) {
-            Auth.updateProfile({ fanId: bookingData.fanIds[0] });
-        }
-        
         // Show success and redirect
         const successDiv = document.createElement('div');
         successDiv.className = 'success-message show';
